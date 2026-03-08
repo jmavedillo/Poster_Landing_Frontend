@@ -395,26 +395,42 @@ export function CreatePosterClient() {
           </div>
 
           <div className="rounded-3xl border border-stone-200 bg-white p-4 shadow-[0_14px_36px_rgba(15,23,42,0.08)]">
-            <div className="legacy-poster-shell">
-              {previewHtml ? (
-                <iframe title="Poster preview" srcDoc={previewHtml} className="h-[600px] w-[400px] overflow-hidden rounded-2xl border border-stone-200" />
-              ) : (
-                <div className="flex h-[600px] w-[400px] items-center justify-center rounded-2xl border border-dashed border-stone-300 text-sm text-stone-500">Generate a poster to preview.</div>
-              )}
-            </div>
+            <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+              <div className="w-full max-w-[400px]">
+                <div className="legacy-poster-shell">
+                  {previewHtml ? (
+                    <iframe title="Poster preview" srcDoc={previewHtml} className="h-[600px] w-full overflow-hidden rounded-2xl border border-stone-200" />
+                  ) : (
+                    <div className="flex h-[600px] w-full items-center justify-center rounded-2xl border border-dashed border-stone-300 text-sm text-stone-500">
+                      Generate a poster to preview.
+                    </div>
+                  )}
+                </div>
 
-            <div className="mt-4 flex flex-wrap gap-3">
-              {[500, 1000].map((width) => (
-                <button
-                  key={width}
-                  type="button"
-                  onClick={() => handleExport(width)}
-                  disabled={!showPoster || isExporting !== null}
-                  className="rounded-full border border-stone-300 bg-white px-5 py-2 text-sm font-semibold text-stone-800 disabled:opacity-60"
-                >
-                  {isExporting === width ? "Exporting..." : `Download JPG (${width}px wide)`}
-                </button>
-              ))}
+                <div className="mt-4 grid w-full grid-cols-1 gap-3 sm:grid-cols-2">
+                  {[500, 1000].map((width) => (
+                    <button
+                      key={width}
+                      type="button"
+                      onClick={() => handleExport(width)}
+                      disabled={!showPoster || isExporting !== null}
+                      className="w-full rounded-full border border-stone-300 bg-white px-3 py-2 text-xs font-semibold text-stone-800 disabled:opacity-60"
+                    >
+                      {isExporting === width ? "Exporting..." : `Download JPG (${width}px wide)`}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <aside className="w-full rounded-2xl border border-stone-200 bg-stone-50 p-4 text-sm text-stone-700 xl:max-w-[320px]">
+                <h2 className="text-sm font-semibold uppercase tracking-[0.14em] text-stone-900">Disclaimer</h2>
+                <p className="mt-3 leading-relaxed">
+                  Posterflow generated images are provided for free use under sole user responsibility.
+                </p>
+                <p className="mt-3 leading-relaxed">
+                  This service is provided as-is, without warranties and on a non-profit basis; we are not responsible for generated content or for how it is ultimately used.
+                </p>
+              </aside>
             </div>
           </div>
         </section>
