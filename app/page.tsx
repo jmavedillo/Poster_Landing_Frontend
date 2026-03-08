@@ -58,12 +58,20 @@ export default function Home() {
               </a>
             ))}
           </nav>
-          <a
-            href="/create"
-            className="rounded-full border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-800 transition hover:bg-stone-100"
-          >
-            Create 1
-          </a>
+          <div className="flex items-center gap-2">
+            <a
+              href="/create"
+              className="rounded-full border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-800 transition hover:bg-stone-100"
+            >
+              Create 1
+            </a>
+            <a
+              href="/create-2"
+              className="rounded-full border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-800 transition hover:bg-stone-100"
+            >
+              Create 2
+            </a>
+          </div>
         </header>
 
         <section className="mt-20 rounded-3xl border border-stone-200 bg-white px-8 py-14 md:px-14 md:py-20">
