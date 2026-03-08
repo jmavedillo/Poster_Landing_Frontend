@@ -207,6 +207,15 @@ export function CreatePosterClient({ templateId, templateLabel, pageTitle, pageD
   );
 
   useEffect(() => {
+    if (process.env.NODE_ENV !== "development") return;
+
+    console.log("[CreatePosterClient] active template", {
+      templateId,
+      route: typeof window !== "undefined" ? window.location.pathname : "server",
+    });
+  }, [templateId]);
+
+  useEffect(() => {
     const normalizedArtistTerm = normalizeText(artistQuery);
     if (normalizedArtistTerm.length < MIN_QUERY_LENGTH) {
       setArtistResults([]);
@@ -299,10 +308,15 @@ export function CreatePosterClient({ templateId, templateLabel, pageTitle, pageD
 
     setIsGenerating(true);
     try {
+      const previewRequest: PosterRenderRequest = { ...posterPayload, template: templateId };
+      if (process.env.NODE_ENV === "development") {
+        console.log("[CreatePosterClient] preview template", previewRequest.template);
+      }
+
       const response = await fetch(`${API_BASE_URL}/api/posters/preview`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(posterPayload),
+        body: JSON.stringify(previewRequest),
       });
 
       if (!response.ok) throw new Error(await readErrorResponse(response));
@@ -320,10 +334,19 @@ export function CreatePosterClient({ templateId, templateLabel, pageTitle, pageD
   const handleExport = async (width: number) => {
     setIsExporting(width);
     try {
+      const renderRequest: PosterRenderRequest = {
+        ...posterPayload,
+        template: templateId,
+        output: { width, format: "jpeg", quality: 0.92 },
+      };
+      if (process.env.NODE_ENV === "development") {
+        console.log("[CreatePosterClient] render template", renderRequest.template);
+      }
+
       const response = await fetch(`${API_BASE_URL}/api/posters/render`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...posterPayload, output: { width, format: "jpeg", quality: 0.92 } }),
+        body: JSON.stringify(renderRequest),
       });
 
       if (!response.ok) {
