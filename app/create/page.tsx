@@ -1,5 +1,6 @@
 import { CreatePosterClient } from "./CreatePosterClient";
+import { createPosterConfigs } from "./createPosterConfigs";
 
 export default function CreatePage() {
-  return <CreatePosterClient />;
+  return <CreatePosterClient {...createPosterConfigs.create1} />;
 }
