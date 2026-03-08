@@ -1,3 +1,41 @@
+
+.legacy-poster-shell .legacy-poster-preview-viewport {
+  width: 300px;
+  height: 450px;
+  margin: 0 auto;
+  overflow: hidden;
+  border: 1px solid #e7e5e4;
+  border-radius: 1rem;
+  background: #fff;
+}
+
+.legacy-poster-shell .legacy-poster-preview-frame {
+  width: 400px;
+  height: 600px;
+  border: 0;
+  display: block;
+  transform: scale(0.75);
+  transform-origin: top left;
+}
+
+.legacy-poster-shell .legacy-poster-preview-empty {
+  width: 300px;
+  height: 450px;
+  margin: 0 auto;
+  border: 1px solid #e7e5e4;
+  border-radius: 1rem;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.legacy-poster-shell .legacy-poster-preview-brand {
+  margin: 0;
+  font-size: 2rem;
+  letter-spacing: -0.02em;
+}
+
 .legacy-poster-shell .poster {
   position: relative;
   width: 400px;
