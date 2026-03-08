@@ -4,7 +4,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Inter } from "next/font/google";
 import "./legacyPoster.css";
-import { buildPosterRenderRequest, PosterRenderRequest } from "./posterModel";
+import { buildPosterRenderRequest, PosterRenderRequest, PosterTemplateId } from "./posterModel";
 
 type Artist = {
   id: string;
@@ -26,6 +26,13 @@ type Track = {
 };
 
 type PosterTheme = "dark" | "inverse";
+
+type CreatePosterClientProps = {
+  templateId: PosterTemplateId;
+  templateLabel: string;
+  pageTitle: string;
+  pageDescription: string;
+};
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -162,7 +169,7 @@ const getRequestErrorMessage = (error: unknown, fallback: string) => {
   return message || fallback;
 };
 
-export function CreatePosterClient() {
+export function CreatePosterClient({ templateId, templateLabel, pageTitle, pageDescription }: CreatePosterClientProps) {
   const [artistQuery, setArtistQuery] = useState("");
   const [songQuery, setSongQuery] = useState("");
   const [artistResults, setArtistResults] = useState<Artist[]>([]);
@@ -179,6 +186,7 @@ export function CreatePosterClient() {
   const posterPayload: PosterRenderRequest = useMemo(
     () =>
       buildPosterRenderRequest({
+        template: templateId,
         track: selectedTrack
           ? {
               title: selectedTrack.title,
@@ -195,7 +203,7 @@ export function CreatePosterClient() {
         artwork: { coverUrl: resolveCoverUrl(selectedTrack?.coverUrl) },
         theme,
       }),
-    [selectedTrack, theme],
+    [selectedTrack, templateId, theme],
   );
 
   useEffect(() => {
@@ -291,7 +299,6 @@ export function CreatePosterClient() {
 
     setIsGenerating(true);
     try {
-      console.log("Poster preview payload", posterPayload);
       const response = await fetch(`${API_BASE_URL}/api/posters/preview`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -358,8 +365,11 @@ export function CreatePosterClient() {
 
         <section className="mt-10 grid gap-8 lg:grid-cols-[360px_1fr]">
           <div className="rounded-3xl border border-stone-200 bg-white p-6">
-            <h1 className="text-3xl font-semibold tracking-tight">Create your poster</h1>
-            <p className="mt-2 text-sm text-stone-600">Search an artist and song, then render and export.</p>
+            <p className="mb-3 inline-flex rounded-full border border-stone-300 bg-stone-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em] text-stone-700">
+              {templateLabel}
+            </p>
+            <h1 className="text-3xl font-semibold tracking-tight">{pageTitle}</h1>
+            <p className="mt-2 text-sm text-stone-600">{pageDescription}</p>
 
             <form className="mt-6 space-y-4" onSubmit={handleGeneratePoster}>
               <label className="block text-sm font-semibold text-stone-700">
