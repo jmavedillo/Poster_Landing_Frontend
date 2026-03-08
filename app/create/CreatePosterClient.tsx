@@ -403,7 +403,7 @@ export function CreatePosterClient() {
               <div className="w-full max-w-[400px]">
                 <div className="legacy-poster-shell">
                   {previewHtml ? (
-                    <iframe title="Poster preview" srcDoc={previewHtml} className="h-[600px] w-full overflow-hidden rounded-2xl border border-stone-200" />
+                    <iframe title="Poster preview" srcDoc={previewHtml} className="legacy-poster-preview-frame" />
                   ) : (
                     <div className="flex h-[600px] w-full items-center justify-center rounded-2xl border border-dashed border-stone-300 text-sm text-stone-500">
                       Generate a poster to preview.
