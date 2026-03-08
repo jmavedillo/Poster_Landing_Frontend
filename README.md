@@ -1,36 +1,128 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Poster Landing Frontend
 
-## Getting Started
+Frontend for a music-poster product built with Next.js and React. This repository includes:
+- A marketing/landing experience (`/`)
+- A poster generator UI (`/create`) that searches tracks and requests poster previews/renders from a backend API
 
-First, run the development server:
+## Project overview
+
+The app is designed as a lightweight frontend that focuses on user experience and delegates heavy poster generation logic to a backend service.
+
+Core user flows:
+1. Browse the landing page and view example posters.
+2. Open the generator page.
+3. Search artist + song.
+4. Generate a preview.
+5. Export a final poster image.
+
+## Architecture
+
+This project uses the Next.js App Router (`app/` directory).
+
+### High-level structure
+
+- `app/layout.tsx` – Root layout, global fonts, and shell HTML.
+- `app/page.tsx` – Landing page.
+- `app/components/PosterExamples.tsx` – Reusable poster examples section on landing page.
+- `app/create/page.tsx` – Entry route for poster generation UI.
+- `app/create/CreatePosterClient.tsx` – Client-side poster generator experience (search, preview, export).
+- `app/create/posterModel.ts` – Typed request model and payload builder for poster rendering.
+- `public/` – Static assets and example images.
+
+### Frontend responsibilities
+
+- User input handling (artist/song search)
+- Debounced API requests for search
+- Preview and export actions
+- Displaying loading/error states
+- Building render payloads in a typed format
+
+### Backend responsibilities (external service)
+
+- Artist and track search
+- Poster preview generation
+- Final poster rendering/export output
+
+## Environment variables
+
+Create a `.env.local` file in the project root.
+
+```bash
+NEXT_PUBLIC_API_BASE_URL=http://localhost:3001
+```
+
+### Variable reference
+
+- `NEXT_PUBLIC_API_BASE_URL`
+  - Base URL for the backend poster API.
+  - Must include protocol and host (and port if needed).
+  - Used on the client, so it is intentionally `NEXT_PUBLIC_*`.
+  - Defaults to `http://localhost:3001` if not set.
+
+## Connection to backend API
+
+The generator UI calls the backend using `NEXT_PUBLIC_API_BASE_URL`.
+
+Expected endpoints:
+
+- `GET /api/artists?q=<artistQuery>`
+  - Returns artist suggestions.
+- `GET /api/tracks?q=<songQuery>&artistName=<optionalArtistName>`
+  - Returns matching tracks.
+- `POST /api/posters/preview`
+  - Accepts poster payload and returns preview HTML/content.
+- `POST /api/posters/render`
+  - Accepts poster payload and returns a render result for export.
+
+If the frontend cannot reach the API, the UI shows an actionable error instructing you to set `NEXT_PUBLIC_API_BASE_URL` correctly.
+
+## Local development
+
+### Prerequisites
+
+- Node.js 20+
+- npm
+
+### Install dependencies
+
+```bash
+npm install
+```
+
+### Run development server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Then open: [http://localhost:3000](http://localhost:3000)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Other scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run lint
+npm run build
+npm run start
+```
 
-## Learn More
+## Vercel deployment
 
-To learn more about Next.js, take a look at the following resources:
+This app is optimized for deployment on Vercel.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Recommended setup
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. Import this repository into Vercel.
+2. Framework preset: **Next.js** (auto-detected).
+3. Set environment variable in Vercel project settings:
+   - `NEXT_PUBLIC_API_BASE_URL=<your-backend-api-url>`
+4. Deploy.
 
-## Deploy on Vercel
+### Notes
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- Ensure CORS is configured on the backend to allow requests from your Vercel domain.
+- Use separate backend URLs for preview environments and production if needed.
+- Because `NEXT_PUBLIC_API_BASE_URL` is public, do not place secrets in frontend env vars.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+
+Built with Next.js + React, deployed on Vercel.
