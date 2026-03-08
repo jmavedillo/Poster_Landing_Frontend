@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { Inter } from "next/font/google";
 import "./legacyPoster.css";
 import { buildPosterRenderRequest, PosterRenderRequest } from "./posterModel";
 
@@ -25,6 +26,8 @@ type Track = {
 };
 
 type PosterTheme = "dark" | "inverse";
+
+const inter = Inter({ subsets: ["latin"] });
 
 const defaults = {
   title: "Viajo Sin Ver (Remix) [feat De La...]",
@@ -341,8 +344,9 @@ export function CreatePosterClient() {
     <main className="min-h-screen bg-stone-50 text-stone-900">
       <div className="mx-auto max-w-6xl px-6 py-8 md:px-8 md:py-10">
         <header className="flex items-center justify-between rounded-full border border-stone-200 bg-white/90 px-6 py-3">
-          <Link href="/" className="text-sm font-semibold tracking-[0.18em] text-stone-700">
-            POSTERFLOW
+          <Link href="/" className={`${inter.className} text-xl tracking-tight`}>
+            <span className="font-bold text-[#111]">Sound</span>
+            <span className="font-light text-[#777]">frame</span>
           </Link>
           <Link
             href="/"
@@ -425,7 +429,7 @@ export function CreatePosterClient() {
               <aside className="w-full rounded-2xl border border-stone-200 bg-stone-50 p-4 text-sm text-stone-700 xl:max-w-[320px]">
                 <h2 className="text-sm font-semibold uppercase tracking-[0.14em] text-stone-900">Disclaimer</h2>
                 <p className="mt-3 leading-relaxed">
-                  Posterflow generated images are provided for free use under sole user responsibility.
+                  Soundframe generated images are provided for free use under sole user responsibility.
                 </p>
                 <p className="mt-3 leading-relaxed">
                   This service is provided as-is, without warranties and on a non-profit basis; we are not responsible for generated content or for how it is ultimately used.
