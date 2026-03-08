@@ -1,5 +1,8 @@
 import Image from "next/image";
+import { Inter } from "next/font/google";
 import { PosterExamples } from "./components/PosterExamples";
+
+const inter = Inter({ subsets: ["latin"] });
 
 const navItems = [
   { label: "How it Works", href: "#how-it-works" },
@@ -44,7 +47,10 @@ export default function Home() {
     <main className="min-h-screen bg-stone-50 text-stone-900">
       <div className="mx-auto max-w-6xl px-6 py-8 md:px-8 md:py-10">
         <header className="flex items-center justify-between rounded-full border border-stone-200 bg-white/90 px-6 py-3">
-          <p className="text-sm font-semibold tracking-[0.18em] text-stone-700">POSTERFLOW</p>
+          <p className={`${inter.className} text-xl tracking-tight`}>
+            <span className="font-bold text-[#111]">Sound</span>
+            <span className="font-light text-[#777]">frame</span>
+          </p>
           <nav className="hidden gap-8 text-sm text-stone-600 md:flex">
             {navItems.map((item) => (
               <a key={item.label} href={item.href} className="transition hover:text-stone-900">
@@ -56,7 +62,7 @@ export default function Home() {
             href="/create"
             className="rounded-full border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-800 transition hover:bg-stone-100"
           >
-            Launch App
+            Create
           </a>
         </header>
 
@@ -75,7 +81,7 @@ export default function Home() {
                   href="/create"
                   className="rounded-full bg-stone-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-stone-700"
                 >
-                  Launch App
+                  Create
                 </a>
                 <a
                   href="#how-it-works"
@@ -141,7 +147,7 @@ export default function Home() {
               href="/create"
               className="inline-flex w-fit rounded-full border border-stone-300 bg-white px-5 py-2 text-sm font-semibold text-stone-800 transition hover:bg-stone-100"
             >
-              Launch App
+              Create
             </a>
           </div>
         </footer>
