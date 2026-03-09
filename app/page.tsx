@@ -110,20 +110,20 @@ export default function Home() {
               <div className="overflow-hidden rounded-2xl border border-stone-200 bg-white p-3 shadow-[0_14px_36px_rgba(15,23,42,0.07)]">
                 <div className="hero-carousel relative">
                   <Image
-                    src="/examples/conspiraciones-poster.jpg"
+                    src="/examples/song.jpg"
                     alt="Your Favorite Song poster preview"
                     width={840}
                     height={1080}
-                    className="hero-slide hero-slide-primary h-auto w-full rounded-xl object-cover"
+                    className="hero-slide hero-slide-primary rounded-xl"
                     sizes="360px"
                     priority
                   />
                   <Image
-                    src="/examples/medusa-poster-1000.jpg"
+                    src="/examples/moment.jpg"
                     alt="Your Special Moment poster preview"
                     width={840}
                     height={1080}
-                    className="hero-slide hero-slide-secondary h-auto w-full rounded-xl object-cover"
+                    className="hero-slide hero-slide-secondary rounded-xl"
                     sizes="360px"
                   />
                 </div>
