@@ -175,7 +175,7 @@ const getRequestErrorMessage = (error: unknown, fallback: string) => {
 const loadImageElement = (file: File) =>
   new Promise<HTMLImageElement>((resolve, reject) => {
     const objectUrl = URL.createObjectURL(file);
-    const image = new Image();
+    const image: HTMLImageElement = document.createElement("img");
 
     image.onload = () => {
       URL.revokeObjectURL(objectUrl);
