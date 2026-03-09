@@ -1,4 +1,4 @@
-# Poster Landing Frontend
+# Poster Landing Frontend (change)
 
 Frontend for a music-poster product built with Next.js and React. This repository includes:
 - A marketing/landing experience (`/`)
