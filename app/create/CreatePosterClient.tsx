@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Inter } from "next/font/google";
 import "./legacyPoster.css";
@@ -32,6 +32,7 @@ type CreatePosterClientProps = {
   templateLabel: string;
   pageTitle: string;
   pageDescription: string;
+  requiresPhotoUpload?: boolean;
 };
 
 const inter = Inter({ subsets: ["latin"] });
@@ -120,7 +121,7 @@ const getTrackArtists = (track: Track | null) => (track?.artists || []).map((art
 
 const resolveCoverUrl = (coverUrl: string | null | undefined) => {
   const value = coverUrl || defaults.cover;
-  if (/^https?:\/\//i.test(value) || value.startsWith("data:")) return value;
+  if (/^https?:\/\//i.test(value) || value.startsWith("data:") || value.startsWith("blob:")) return value;
   if (typeof window !== "undefined") {
     return new URL(value, window.location.origin).toString();
   }
@@ -169,7 +170,7 @@ const getRequestErrorMessage = (error: unknown, fallback: string) => {
   return message || fallback;
 };
 
-export function CreatePosterClient({ templateId, templateLabel, pageTitle, pageDescription }: CreatePosterClientProps) {
+export function CreatePosterClient({ templateId, templateLabel, pageTitle, pageDescription, requiresPhotoUpload = false }: CreatePosterClientProps) {
   const [artistQuery, setArtistQuery] = useState("");
   const [songQuery, setSongQuery] = useState("");
   const [artistResults, setArtistResults] = useState<Artist[]>([]);
@@ -182,6 +183,7 @@ export function CreatePosterClient({ templateId, templateLabel, pageTitle, pageD
   const [isGenerating, setIsGenerating] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [previewHtml, setPreviewHtml] = useState<string | null>(null);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
 
   const posterPayload: PosterRenderRequest = useMemo(
     () =>
@@ -200,10 +202,10 @@ export function CreatePosterClient({ templateId, templateLabel, pageTitle, pageD
               totalTime: defaults.totalTime,
               currentTime: getElapsedTime(defaults.totalTime),
             },
-        artwork: { coverUrl: resolveCoverUrl(selectedTrack?.coverUrl) },
+        artwork: { coverUrl: requiresPhotoUpload ? resolveCoverUrl(photoUrl) : resolveCoverUrl(selectedTrack?.coverUrl) },
         theme,
       }),
-    [selectedTrack, templateId, theme],
+    [selectedTrack, templateId, theme, requiresPhotoUpload, photoUrl],
   );
 
   useEffect(() => {
@@ -302,9 +304,43 @@ export function CreatePosterClient({ templateId, templateLabel, pageTitle, pageD
     };
   }, [songQuery, artistQuery, selectedArtist]);
 
+
+  const handlePhotoUpload = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] ?? null;
+
+    setPhotoUrl((previousPhotoUrl) => {
+      if (previousPhotoUrl?.startsWith("blob:")) {
+        URL.revokeObjectURL(previousPhotoUrl);
+      }
+
+      if (!file) return null;
+      return URL.createObjectURL(file);
+    });
+
+    setSearchError(null);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (photoUrl?.startsWith("blob:")) {
+        URL.revokeObjectURL(photoUrl);
+      }
+    };
+  }, [photoUrl]);
+
   const handleGeneratePoster = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (isGenerating) return;
+
+    if (!selectedTrack) {
+      setSearchError("Please select a song to generate this poster");
+      return;
+    }
+
+    if (requiresPhotoUpload && !photoUrl) {
+      setSearchError("Please upload a photo to generate this poster");
+      return;
+    }
 
     setIsGenerating(true);
     try {
@@ -429,6 +465,19 @@ export function CreatePosterClient({ templateId, templateLabel, pageTitle, pageD
                   <label><input type="radio" checked={theme === "inverse"} onChange={() => setTheme("inverse")} /> Elegant inverse</label>
                 </div>
               </fieldset>
+
+
+              {requiresPhotoUpload ? (
+                <label className="block text-sm font-semibold text-stone-700">
+                  Upload photo
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handlePhotoUpload}
+                    className="mt-2 w-full rounded-xl border border-stone-300 px-3 py-2"
+                  />
+                </label>
+              ) : null}
 
               {searchError ? <p className="text-xs text-red-600">{searchError}</p> : null}
 
