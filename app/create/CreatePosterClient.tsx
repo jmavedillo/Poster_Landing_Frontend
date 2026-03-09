@@ -2,6 +2,7 @@
 
 import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Inter } from "next/font/google";
 import "./legacyPoster.css";
 import { buildPosterRenderRequest, PosterRenderRequest, PosterTemplateId } from "./posterModel";
@@ -47,6 +48,7 @@ const defaults = {
 const MIN_QUERY_LENGTH = 3;
 const DEBOUNCE_MS = 300;
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001";
+const IMGBB_API_KEY = process.env.NEXT_PUBLIC_IMGBB_API_KEY ?? "";
 
 const API_UNREACHABLE_MESSAGE =
   `Cannot reach the poster API at ${API_BASE_URL}. Set NEXT_PUBLIC_API_BASE_URL to your running backend URL.`;
@@ -170,6 +172,83 @@ const getRequestErrorMessage = (error: unknown, fallback: string) => {
   return message || fallback;
 };
 
+const loadImageElement = (file: File) =>
+  new Promise<HTMLImageElement>((resolve, reject) => {
+    const objectUrl = URL.createObjectURL(file);
+    const image = new Image();
+
+    image.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve(image);
+    };
+
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error("Unable to read the selected image."));
+    };
+
+    image.src = objectUrl;
+  });
+
+const compressImageFile = async (file: File) => {
+  const image = await loadImageElement(file);
+  const targetWidth = 1000;
+  const targetHeight = Math.max(1, Math.round((image.height / image.width) * targetWidth));
+  const canvas = document.createElement("canvas");
+  canvas.width = targetWidth;
+  canvas.height = targetHeight;
+
+  const context = canvas.getContext("2d");
+  if (!context) {
+    throw new Error("Unable to process the image in this browser.");
+  }
+
+  context.drawImage(image, 0, 0, targetWidth, targetHeight);
+
+  const blob = await new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob(
+      (value) => {
+        if (!value) {
+          reject(new Error("Unable to compress the image. Please try another file."));
+          return;
+        }
+
+        resolve(value);
+      },
+      "image/jpeg",
+      0.85,
+    );
+  });
+
+  return blob;
+};
+
+const uploadImageToImgbb = async (imageBlob: Blob) => {
+  if (!IMGBB_API_KEY) {
+    throw new Error("Missing NEXT_PUBLIC_IMGBB_API_KEY. Add it to your frontend environment.");
+  }
+
+  const formData = new FormData();
+  formData.append("image", imageBlob, "cover.jpg");
+
+  const response = await fetch(`https://api.imgbb.com/1/upload?key=${encodeURIComponent(IMGBB_API_KEY)}&expiration=60`, {
+    method: "POST",
+    body: formData,
+  });
+
+  const payload = (await response.json()) as {
+    data?: { url?: string; display_url?: string };
+    error?: { message?: string };
+  };
+
+  if (!response.ok || !payload?.data?.url) {
+    const detail = payload?.error?.message ? `: ${payload.error.message}` : "";
+    throw new Error(`Image upload failed${detail}`);
+  }
+
+  return payload.data.url;
+};
+
 export function CreatePosterClient({ templateId, templateLabel, pageTitle, pageDescription, requiresPhotoUpload = false }: CreatePosterClientProps) {
   const [artistQuery, setArtistQuery] = useState("");
   const [songQuery, setSongQuery] = useState("");
@@ -183,7 +262,10 @@ export function CreatePosterClient({ templateId, templateLabel, pageTitle, pageD
   const [isGenerating, setIsGenerating] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [previewHtml, setPreviewHtml] = useState<string | null>(null);
-  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
+  const [uploadedPhotoUrl, setUploadedPhotoUrl] = useState<string | null>(null);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
 
   const posterPayload: PosterRenderRequest = useMemo(
     () =>
@@ -202,10 +284,12 @@ export function CreatePosterClient({ templateId, templateLabel, pageTitle, pageD
               totalTime: defaults.totalTime,
               currentTime: getElapsedTime(defaults.totalTime),
             },
-        artwork: { coverUrl: requiresPhotoUpload ? resolveCoverUrl(photoUrl) : resolveCoverUrl(selectedTrack?.coverUrl) },
+        artwork: {
+          coverUrl: requiresPhotoUpload ? resolveCoverUrl(uploadedPhotoUrl) : resolveCoverUrl(selectedTrack?.coverUrl),
+        },
         theme,
       }),
-    [selectedTrack, templateId, theme, requiresPhotoUpload, photoUrl],
+    [selectedTrack, templateId, theme, requiresPhotoUpload, uploadedPhotoUrl],
   );
 
   useEffect(() => {
@@ -305,10 +389,11 @@ export function CreatePosterClient({ templateId, templateLabel, pageTitle, pageD
   }, [songQuery, artistQuery, selectedArtist]);
 
 
-  const handlePhotoUpload = (event: ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoUpload = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] ?? null;
+    setShowPoster(false);
 
-    setPhotoUrl((previousPhotoUrl) => {
+    setPhotoPreviewUrl((previousPhotoUrl) => {
       if (previousPhotoUrl?.startsWith("blob:")) {
         URL.revokeObjectURL(previousPhotoUrl);
       }
@@ -317,16 +402,35 @@ export function CreatePosterClient({ templateId, templateLabel, pageTitle, pageD
       return URL.createObjectURL(file);
     });
 
+    setUploadedPhotoUrl(null);
+    setPhotoError(null);
     setSearchError(null);
+
+    if (!file) {
+      return;
+    }
+
+    setIsUploadingPhoto(true);
+
+    try {
+      const compressedImage = await compressImageFile(file);
+      const hostedUrl = await uploadImageToImgbb(compressedImage);
+      setUploadedPhotoUrl(hostedUrl);
+    } catch (error) {
+      setPhotoError(getRequestErrorMessage(error, "Unable to upload your photo right now."));
+      setUploadedPhotoUrl(null);
+    } finally {
+      setIsUploadingPhoto(false);
+    }
   };
 
   useEffect(() => {
     return () => {
-      if (photoUrl?.startsWith("blob:")) {
-        URL.revokeObjectURL(photoUrl);
+      if (photoPreviewUrl?.startsWith("blob:")) {
+        URL.revokeObjectURL(photoPreviewUrl);
       }
     };
-  }, [photoUrl]);
+  }, [photoPreviewUrl]);
 
   const handleGeneratePoster = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -337,8 +441,8 @@ export function CreatePosterClient({ templateId, templateLabel, pageTitle, pageD
       return;
     }
 
-    if (requiresPhotoUpload && !photoUrl) {
-      setSearchError("Please upload a photo to generate this poster");
+    if (requiresPhotoUpload && !uploadedPhotoUrl) {
+      setSearchError("Please upload a photo successfully before generating this poster");
       return;
     }
 
@@ -468,20 +572,34 @@ export function CreatePosterClient({ templateId, templateLabel, pageTitle, pageD
 
 
               {requiresPhotoUpload ? (
-                <label className="block text-sm font-semibold text-stone-700">
-                  Upload photo
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handlePhotoUpload}
-                    className="mt-2 w-full rounded-xl border border-stone-300 px-3 py-2"
-                  />
-                </label>
+                <div className="space-y-2">
+                  <label className="block text-sm font-semibold text-stone-700">
+                    Upload photo
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handlePhotoUpload}
+                      className="mt-2 w-full rounded-xl border border-stone-300 px-3 py-2"
+                    />
+                  </label>
+                  {isUploadingPhoto ? <p className="text-xs text-stone-500">Processing and uploading your image...</p> : null}
+                  {!isUploadingPhoto && uploadedPhotoUrl ? (
+                    <p className="text-xs text-emerald-700">Image uploaded successfully. Temporary link ready.</p>
+                  ) : null}
+                  {photoPreviewUrl ? (
+                    <Image src={photoPreviewUrl} alt="Uploaded preview" width={96} height={96} unoptimized className="h-24 w-24 rounded-lg border border-stone-200 object-cover" />
+                  ) : null}
+                  {photoError ? <p className="text-xs text-red-600">{photoError}</p> : null}
+                </div>
               ) : null}
 
               {searchError ? <p className="text-xs text-red-600">{searchError}</p> : null}
 
-              <button type="submit" className="flex w-full items-center justify-center rounded-full bg-stone-900 px-6 py-3 text-sm font-semibold text-white" disabled={isGenerating}>
+              <button
+                type="submit"
+                className="flex w-full items-center justify-center rounded-full bg-stone-900 px-6 py-3 text-sm font-semibold text-white"
+                disabled={isGenerating || isUploadingPhoto}
+              >
                 {isGenerating ? "Rendering..." : "Generate poster"}
               </button>
             </form>
@@ -522,12 +640,28 @@ export function CreatePosterClient({ templateId, templateLabel, pageTitle, pageD
 
               <aside className="w-full rounded-2xl border border-stone-200 bg-stone-50 p-4 text-sm text-stone-700 xl:max-w-[320px]">
                 <h2 className="text-sm font-semibold uppercase tracking-[0.14em] text-stone-900">Disclaimer</h2>
-                <p className="mt-3 leading-relaxed">
-                  Soundframe generated images are provided for free use under sole user responsibility.
-                </p>
-                <p className="mt-3 leading-relaxed">
-                  This service is provided as-is, without warranties and on a non-profit basis; we are not responsible for generated content or for how it is ultimately used.
-                </p>
+                {requiresPhotoUpload ? (
+                  <>
+                    <p className="mt-3 leading-relaxed">
+                      Uploaded photos are compressed in your browser and then temporarily hosted to render your poster.
+                    </p>
+                    <p className="mt-3 leading-relaxed">
+                      The temporary URL may be publicly accessible for a short time and expires after about 60 seconds.
+                    </p>
+                    <p className="mt-3 leading-relaxed">
+                      Download your poster promptly. Use this service under your own responsibility.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="mt-3 leading-relaxed">
+                      Soundframe generated images are provided for free use under sole user responsibility.
+                    </p>
+                    <p className="mt-3 leading-relaxed">
+                      This service is provided as-is, without warranties and on a non-profit basis; we are not responsible for generated content or for how it is ultimately used.
+                    </p>
+                  </>
+                )}
               </aside>
             </div>
           </div>
