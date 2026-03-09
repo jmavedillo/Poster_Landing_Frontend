@@ -1,6 +1,8 @@
 import Image from "next/image";
 import { Inter } from "next/font/google";
 import { PosterExamples } from "./components/PosterExamples";
+import songPreview from "./examples/song.jpg";
+import momentPreview from "./examples/moment.jpg";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -110,7 +112,7 @@ export default function Home() {
               <div className="overflow-hidden rounded-2xl border border-stone-200 bg-white p-3 shadow-[0_14px_36px_rgba(15,23,42,0.07)]">
                 <div className="hero-carousel relative">
                   <Image
-                    src="/examples/song.jpg"
+                    src={songPreview}
                     alt="Your Favorite Song poster preview"
                     width={840}
                     height={1080}
@@ -119,7 +121,7 @@ export default function Home() {
                     priority
                   />
                   <Image
-                    src="/examples/moment.jpg"
+                    src={momentPreview}
                     alt="Your Special Moment poster preview"
                     width={840}
                     height={1080}
