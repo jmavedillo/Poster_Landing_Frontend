@@ -29,16 +29,22 @@ type BuildRequestInput = {
   track: PosterTrackData;
   artwork: PosterArtworkData;
   theme: PosterTheme;
+  output?: {
+    width: number;
+    format: "jpeg" | "png";
+    quality?: number;
+  };
 };
 
-export const buildPosterRenderRequest = ({ template, track, artwork, theme }: BuildRequestInput): PosterRenderRequest => ({
+export const buildPosterRenderRequest = ({ template, track, artwork, theme, output }: BuildRequestInput): PosterRenderRequest => ({
   template,
   theme,
   track,
   artwork,
-  output: {
-    width: 1000,
-    format: "jpeg",
-    quality: 0.92,
-  },
+  output:
+    output ?? {
+      width: 1000,
+      format: "jpeg",
+      quality: 0.92,
+    },
 });

@@ -308,7 +308,12 @@ export function CreatePosterClient({ templateId, templateLabel, pageTitle, pageD
 
     setIsGenerating(true);
     try {
-      const previewRequest: PosterRenderRequest = { ...posterPayload, template: templateId };
+      const previewRequest: PosterRenderRequest = buildPosterRenderRequest({
+        template: templateId,
+        track: posterPayload.track,
+        artwork: posterPayload.artwork,
+        theme,
+      });
       if (process.env.NODE_ENV === "development") {
         console.log("[CreatePosterClient] preview template", previewRequest.template);
       }
@@ -334,11 +339,13 @@ export function CreatePosterClient({ templateId, templateLabel, pageTitle, pageD
   const handleExport = async (width: number) => {
     setIsExporting(width);
     try {
-      const renderRequest: PosterRenderRequest = {
-        ...posterPayload,
+      const renderRequest: PosterRenderRequest = buildPosterRenderRequest({
         template: templateId,
+        track: posterPayload.track,
+        artwork: posterPayload.artwork,
+        theme,
         output: { width, format: "jpeg", quality: 0.92 },
-      };
+      });
       if (process.env.NODE_ENV === "development") {
         console.log("[CreatePosterClient] render template", renderRequest.template);
       }
