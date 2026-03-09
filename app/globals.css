@@ -24,3 +24,50 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+.hero-carousel {
+  position: relative;
+  overflow: visible;
+}
+
+.hero-frame-image,
+.hero-slide-overlay {
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+}
+
+.hero-frame-image {
+  display: block;
+}
+
+.hero-slide-overlay {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  animation: heroCarouselFade 10s infinite;
+}
+
+.hero-slide-primary {
+  animation-delay: 0s;
+}
+
+.hero-slide-secondary {
+  animation-delay: 5s;
+}
+
+@keyframes heroCarouselFade {
+  0%,
+  45% {
+    opacity: 1;
+  }
+
+  50%,
+  95% {
+    opacity: 0;
+  }
+
+  100% {
+    opacity: 1;
+  }
+}

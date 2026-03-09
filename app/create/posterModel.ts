@@ -1,4 +1,4 @@
-export type PosterTemplateId = "spotify-player-v1";
+export type PosterTemplateId = "spotify-player-v1" | "minimal-clean-v1";
 export type PosterTheme = "dark" | "inverse";
 
 export type PosterTrackData = {
@@ -25,19 +25,26 @@ export type PosterRenderRequest = {
 };
 
 type BuildRequestInput = {
+  template: PosterTemplateId;
   track: PosterTrackData;
   artwork: PosterArtworkData;
   theme: PosterTheme;
+  output?: {
+    width: number;
+    format: "jpeg" | "png";
+    quality?: number;
+  };
 };
 
-export const buildPosterRenderRequest = ({ track, artwork, theme }: BuildRequestInput): PosterRenderRequest => ({
-  template: "spotify-player-v1",
+export const buildPosterRenderRequest = ({ template, track, artwork, theme, output }: BuildRequestInput): PosterRenderRequest => ({
+  template,
   theme,
   track,
   artwork,
-  output: {
-    width: 1000,
-    format: "jpeg",
-    quality: 0.92,
-  },
+  output:
+    output ?? {
+      width: 1000,
+      format: "jpeg",
+      quality: 0.92,
+    },
 });

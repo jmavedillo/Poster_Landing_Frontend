@@ -1,8 +1,8 @@
-# Poster Landing Frontend
+# Poster Landing Frontend (change)
 
 Frontend for a music-poster product built with Next.js and React. This repository includes:
 - A marketing/landing experience (`/`)
-- A poster generator UI (`/create`) that searches tracks and requests poster previews/renders from a backend API
+- Poster generator UI routes (`/create` and `/create-2`) that search tracks and request poster previews/renders from a backend API
 
 ## Project overview
 
@@ -10,7 +10,7 @@ The app is designed as a lightweight frontend that focuses on user experience an
 
 Core user flows:
 1. Browse the landing page and view example posters.
-2. Open the generator page.
+2. Open one of the generator pages (`/create` or `/create-2`).
 3. Search artist + song.
 4. Generate a preview.
 5. Export a final poster image.
@@ -24,7 +24,8 @@ This project uses the Next.js App Router (`app/` directory).
 - `app/layout.tsx` – Root layout, global fonts, and shell HTML.
 - `app/page.tsx` – Landing page.
 - `app/components/PosterExamples.tsx` – Reusable poster examples section on landing page.
-- `app/create/page.tsx` – Entry route for poster generation UI.
+- `app/create/page.tsx` – Template 1 generator route (`spotify-player-v1`).
+- `app/create-2/page.tsx` – Template 2 generator route (`minimal-clean-v1`).
 - `app/create/CreatePosterClient.tsx` – Client-side poster generator experience (search, preview, export).
 - `app/create/posterModel.ts` – Typed request model and payload builder for poster rendering.
 - `public/` – Static assets and example images.
