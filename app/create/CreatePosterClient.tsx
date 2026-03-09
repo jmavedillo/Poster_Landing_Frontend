@@ -30,7 +30,6 @@ type PosterTheme = "dark" | "inverse";
 
 type CreatePosterClientProps = {
   templateId: PosterTemplateId;
-  templateLabel: string;
   pageTitle: string;
   pageDescription: string;
   requiresPhotoUpload?: boolean;
@@ -249,7 +248,7 @@ const uploadImageToImgbb = async (imageBlob: Blob) => {
   return payload.data.url;
 };
 
-export function CreatePosterClient({ templateId, templateLabel, pageTitle, pageDescription, requiresPhotoUpload = false }: CreatePosterClientProps) {
+export function CreatePosterClient({ templateId, pageTitle, pageDescription, requiresPhotoUpload = false }: CreatePosterClientProps) {
   const [artistQuery, setArtistQuery] = useState("");
   const [songQuery, setSongQuery] = useState("");
   const [artistResults, setArtistResults] = useState<Artist[]>([]);
@@ -535,9 +534,6 @@ export function CreatePosterClient({ templateId, templateLabel, pageTitle, pageD
 
         <section className="mt-10 grid gap-8 lg:grid-cols-[360px_1fr]">
           <div className="rounded-3xl border border-stone-200 bg-white p-6">
-            <p className="mb-3 inline-flex rounded-full border border-stone-300 bg-stone-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em] text-stone-700">
-              {templateLabel}
-            </p>
             <h1 className="text-3xl font-semibold tracking-tight">{pageTitle}</h1>
             <p className="mt-2 text-sm text-stone-600">{pageDescription}</p>
 
