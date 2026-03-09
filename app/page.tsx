@@ -63,13 +63,13 @@ export default function Home() {
               href="/create"
               className="rounded-full border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-800 transition hover:bg-stone-100"
             >
-              Create 1
+              Your Favorite Song
             </a>
             <a
               href="/create-2"
               className="rounded-full border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-800 transition hover:bg-stone-100"
             >
-              Create 2
+              Your Special Moment
             </a>
           </div>
         </header>
@@ -89,13 +89,13 @@ export default function Home() {
                   href="/create"
                   className="rounded-full bg-stone-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-stone-700"
                 >
-                  Create 1
+                  Your Favorite Song
                 </a>
                 <a
                   href="/create-2"
                   className="rounded-full border border-stone-300 bg-white px-6 py-3 text-sm font-semibold text-stone-700 transition hover:bg-stone-100"
                 >
-                  Create 2
+                  Your Special Moment
                 </a>
                 <a
                   href="#how-it-works"
@@ -108,15 +108,25 @@ export default function Home() {
 
             <div className="hidden lg:block">
               <div className="overflow-hidden rounded-2xl border border-stone-200 bg-white p-3 shadow-[0_14px_36px_rgba(15,23,42,0.07)]">
-                <Image
-                  src="/examples/conspiraciones-poster.jpg"
-                  alt="Featured poster preview"
-                  width={840}
-                  height={1080}
-                  className="h-auto w-full rounded-xl object-cover"
-                  sizes="360px"
-                  priority
-                />
+                <div className="hero-carousel relative">
+                  <Image
+                    src="/examples/conspiraciones-poster.jpg"
+                    alt="Your Favorite Song poster preview"
+                    width={840}
+                    height={1080}
+                    className="hero-slide hero-slide-primary h-auto w-full rounded-xl object-cover"
+                    sizes="360px"
+                    priority
+                  />
+                  <Image
+                    src="/examples/medusa-poster-1000.jpg"
+                    alt="Your Special Moment poster preview"
+                    width={840}
+                    height={1080}
+                    className="hero-slide hero-slide-secondary h-auto w-full rounded-xl object-cover"
+                    sizes="360px"
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -162,13 +172,13 @@ export default function Home() {
                 href="/create"
                 className="inline-flex w-fit rounded-full border border-stone-300 bg-white px-5 py-2 text-sm font-semibold text-stone-800 transition hover:bg-stone-100"
               >
-                Create 1
+                Your Favorite Song
               </a>
               <a
                 href="/create-2"
                 className="inline-flex w-fit rounded-full border border-stone-300 bg-white px-5 py-2 text-sm font-semibold text-stone-800 transition hover:bg-stone-100"
               >
-                Create 2
+                Your Special Moment
               </a>
             </div>
           </div>
