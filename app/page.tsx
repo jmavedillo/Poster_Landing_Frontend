@@ -110,13 +110,13 @@ export default function Home() {
 
             <div className="hidden lg:block">
               <div className="overflow-hidden rounded-2xl border border-stone-200 bg-white p-3 shadow-[0_14px_36px_rgba(15,23,42,0.07)]">
-                <div className="hero-carousel relative">
+                <div className="hero-carousel">
                   <Image
                     src={songPreview}
                     alt="Your Favorite Song poster preview"
                     width={840}
                     height={1080}
-                    className="hero-slide hero-slide-primary rounded-xl"
+                    className="hero-frame-image hero-slide-primary rounded-xl"
                     sizes="360px"
                     priority
                   />
@@ -125,7 +125,7 @@ export default function Home() {
                     alt="Your Special Moment poster preview"
                     width={840}
                     height={1080}
-                    className="hero-slide hero-slide-secondary rounded-xl"
+                    className="hero-slide-overlay hero-slide-secondary rounded-xl"
                     sizes="360px"
                   />
                 </div>
