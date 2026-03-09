@@ -27,21 +27,23 @@ body {
 
 .hero-carousel {
   position: relative;
-  aspect-ratio: 7 / 9;
-  min-height: 500px;
-  overflow: hidden;
-  border-radius: 0.75rem;
-  background: #f5f5f4;
+  overflow: visible;
 }
 
-.hero-slide {
+.hero-frame-image,
+.hero-slide-overlay {
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+}
+
+.hero-frame-image {
+  display: block;
+}
+
+.hero-slide-overlay {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 90%;
-  height: 90%;
-  transform: translate(-50%, -50%);
-  object-fit: contain;
+  inset: 0;
   opacity: 0;
   animation: heroCarouselFade 10s infinite;
 }
