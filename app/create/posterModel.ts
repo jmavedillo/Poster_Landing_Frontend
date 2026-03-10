@@ -6,6 +6,8 @@ export type PosterTrackData = {
   artists: string;
   currentTime: string;
   totalTime: string;
+  uri?: string;
+  spotifyUrl?: string;
 };
 
 export type PosterArtworkData = {
