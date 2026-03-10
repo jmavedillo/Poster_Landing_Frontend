@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Inter } from "next/font/google";
 import "./legacyPoster.css";
-import { buildPosterRenderRequest, PosterRenderRequest, PosterTemplateId } from "./posterModel";
+import { buildPosterRenderRequest, PosterRenderRequest, PosterTemplateId, PosterTheme } from "./posterModel";
 
 type Artist = {
   id: string;
@@ -25,8 +25,6 @@ type Track = {
   durationSeconds: number;
   coverUrl: string | null;
 };
-
-type PosterTheme = "dark" | "inverse";
 
 type CreatePosterClientProps = {
   templateId: PosterTemplateId;
@@ -48,6 +46,17 @@ const MIN_QUERY_LENGTH = 3;
 const DEBOUNCE_MS = 300;
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001";
 const IMGBB_API_KEY = process.env.NEXT_PUBLIC_IMGBB_API_KEY ?? "";
+
+const createThemes: Array<{ label: string; value: PosterTheme }> = [
+  { label: "Spotify dark", value: "dark" },
+  { label: "Elegant inverse", value: "inverse" },
+];
+
+const createTwoThemes: Array<{ label: string; value: PosterTheme }> = [
+  { label: "Black & White", value: "bw" },
+  { label: "Color", value: "color" },
+  { label: "Lo-fi", value: "lofi" },
+];
 
 const API_UNREACHABLE_MESSAGE =
   `Cannot reach the poster API at ${API_BASE_URL}. Set NEXT_PUBLIC_API_BASE_URL to your running backend URL.`;
@@ -249,13 +258,15 @@ const uploadImageToImgbb = async (imageBlob: Blob) => {
 };
 
 export function CreatePosterClient({ templateId, pageTitle, pageDescription, requiresPhotoUpload = false }: CreatePosterClientProps) {
+  const availableThemes = requiresPhotoUpload ? createTwoThemes : createThemes;
+  const defaultTheme = availableThemes[0]?.value ?? "dark";
   const [artistQuery, setArtistQuery] = useState("");
   const [songQuery, setSongQuery] = useState("");
   const [artistResults, setArtistResults] = useState<Artist[]>([]);
   const [trackResults, setTrackResults] = useState<Track[]>([]);
   const [selectedArtist, setSelectedArtist] = useState<Artist | null>(null);
   const [selectedTrack, setSelectedTrack] = useState<Track | null>(null);
-  const [theme, setTheme] = useState<PosterTheme>("dark");
+  const [theme, setTheme] = useState<PosterTheme>(defaultTheme);
   const [showPoster, setShowPoster] = useState(false);
   const [isExporting, setIsExporting] = useState<number | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -265,6 +276,10 @@ export function CreatePosterClient({ templateId, pageTitle, pageDescription, req
   const [uploadedPhotoUrl, setUploadedPhotoUrl] = useState<string | null>(null);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [photoError, setPhotoError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setTheme(defaultTheme);
+  }, [defaultTheme]);
 
   const posterPayload: PosterRenderRequest = useMemo(
     () =>
@@ -561,8 +576,16 @@ export function CreatePosterClient({ templateId, pageTitle, pageDescription, req
               <fieldset>
                 <legend className="mb-2 text-sm font-semibold text-stone-700">Theme</legend>
                 <div className="flex gap-4 text-sm">
-                  <label><input type="radio" checked={theme === "dark"} onChange={() => setTheme("dark")} /> Spotify dark</label>
-                  <label><input type="radio" checked={theme === "inverse"} onChange={() => setTheme("inverse")} /> Elegant inverse</label>
+                  {availableThemes.map((themeOption) => (
+                    <label key={themeOption.value}>
+                      <input
+                        type="radio"
+                        checked={theme === themeOption.value}
+                        onChange={() => setTheme(themeOption.value)}
+                      />{" "}
+                      {themeOption.label}
+                    </label>
+                  ))}
                 </div>
               </fieldset>
 
