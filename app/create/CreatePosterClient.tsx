@@ -24,6 +24,8 @@ type Track = {
   artists: TrackArtist[];
   durationSeconds: number;
   coverUrl: string | null;
+  uri?: string | null;
+  spotifyUrl?: string | null;
 };
 
 type CreatePosterClientProps = {
@@ -291,6 +293,8 @@ export function CreatePosterClient({ templateId, pageTitle, pageDescription, req
               artists: getTrackArtists(selectedTrack),
               totalTime: formatTime(selectedTrack.durationSeconds),
               currentTime: getElapsedTime(formatTime(selectedTrack.durationSeconds)),
+              uri: selectedTrack.uri ?? "",
+              spotifyUrl: selectedTrack.spotifyUrl ?? "",
             }
           : {
               title: defaults.title,
