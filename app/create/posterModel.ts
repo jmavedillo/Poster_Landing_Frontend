@@ -1,11 +1,13 @@
 export type PosterTemplateId = "spotify-player-v1" | "minimal-clean-v1";
-export type PosterTheme = "dark" | "inverse";
+export type PosterTheme = "dark" | "inverse" | "bw" | "color" | "lofi";
 
 export type PosterTrackData = {
   title: string;
   artists: string;
   currentTime: string;
   totalTime: string;
+  uri?: string;
+  spotifyUrl?: string;
 };
 
 export type PosterArtworkData = {
