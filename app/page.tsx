@@ -49,10 +49,10 @@ export default function Home() {
     <main className="min-h-screen bg-stone-50 text-stone-900">
       <div className="mx-auto max-w-6xl px-6 py-8 md:px-8 md:py-10">
         <header className="flex items-center justify-between rounded-full border border-stone-200 bg-white/90 px-6 py-3">
-          <p className={`${inter.className} text-xl tracking-tight`}>
+          <p className={`${inter.className} text-2xl tracking-tight`}>
             <span className="font-bold text-[#111]">AZTE</span>
-            <span className="text-[#FF6B57]">.</span>
-            <span className="font-light text-[#777]">UNO</span>
+            <span className="text-4xl font-black leading-none text-[#FF6B57]">.</span>
+            <span className="font-light text-[#FF8A78]">UNO</span>
           </p>
           <nav className="hidden gap-8 text-sm text-stone-600 md:flex">
             {navItems.map((item) => (
