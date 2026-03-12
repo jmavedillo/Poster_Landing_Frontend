@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Inter } from "next/font/google";
@@ -290,6 +290,7 @@ export function CreatePosterClient({ templateId, pageTitle, pageDescription, req
   const [theme, setTheme] = useState<PosterTheme>(defaultTheme);
   const [showPoster, setShowPoster] = useState(false);
   const [isExporting, setIsExporting] = useState<number | null>(null);
+  const [isPreparingPosterImage, setIsPreparingPosterImage] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [previewHtml, setPreviewHtml] = useState<string | null>(null);
@@ -297,6 +298,9 @@ export function CreatePosterClient({ templateId, pageTitle, pageDescription, req
   const [uploadedPhotoUrl, setUploadedPhotoUrl] = useState<string | null>(null);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [photoError, setPhotoError] = useState<string | null>(null);
+  const [generatedPosterRequest, setGeneratedPosterRequest] = useState<PosterRenderRequest | null>(null);
+  const [cachedPosterImage, setCachedPosterImage] = useState<{ blob: Blob; file: File; fileName: string } | null>(null);
+  const prepareRenderIdRef = useRef(0);
 
   useEffect(() => {
     setTheme(defaultTheme);
@@ -484,6 +488,9 @@ export function CreatePosterClient({ templateId, pageTitle, pageDescription, req
     }
 
     setIsGenerating(true);
+    prepareRenderIdRef.current += 1;
+    setCachedPosterImage(null);
+    setGeneratedPosterRequest(null);
     try {
       const previewRequest: PosterRenderRequest = buildPosterRenderRequest({
         template: templateId,
@@ -506,6 +513,8 @@ export function CreatePosterClient({ templateId, pageTitle, pageDescription, req
       setPreviewHtml(payload.html || null);
       setShowPoster(true);
       setSearchError(null);
+      setGeneratedPosterRequest(previewRequest);
+      void preparePosterImageInBackground(previewRequest);
     } catch (error) {
       setSearchError(getRequestErrorMessage(error, "Unable to render preview right now."));
     } finally {
@@ -513,12 +522,13 @@ export function CreatePosterClient({ templateId, pageTitle, pageDescription, req
     }
   };
 
-  const renderPosterImage = async (width: number) => {
+  const renderPosterImage = async (width: number, sourceRequest?: PosterRenderRequest) => {
+    const baseRequest = sourceRequest ?? generatedPosterRequest ?? posterPayload;
     const renderRequest: PosterRenderRequest = buildPosterRenderRequest({
-      template: templateId,
-      track: posterPayload.track,
-      artwork: posterPayload.artwork,
-      theme,
+      template: baseRequest.template,
+      track: baseRequest.track,
+      artwork: baseRequest.artwork,
+      theme: baseRequest.theme,
       output: { width, format: "jpeg", quality: 0.92 },
     });
     if (process.env.NODE_ENV === "development") {
@@ -536,14 +546,51 @@ export function CreatePosterClient({ templateId, pageTitle, pageDescription, req
     }
 
     const blob = await response.blob();
-    const fileName = `${sanitizeFileName(posterPayload.track.title)}-poster-${width}.jpg`;
-    return { blob, fileName };
+    const fileName = `${sanitizeFileName(baseRequest.track.title)}-poster-${width}.jpg`;
+    return { blob, fileName, file: toJpegFile(blob, fileName) };
   };
 
-  const handleExport = async (width: number) => {
-    setIsExporting(width);
+  const preparePosterImageInBackground = async (sourceRequest: PosterRenderRequest) => {
+    const currentRenderId = prepareRenderIdRef.current + 1;
+    prepareRenderIdRef.current = currentRenderId;
+    setIsPreparingPosterImage(true);
+    setCachedPosterImage(null);
+
     try {
-      const { blob, fileName } = await renderPosterImage(width);
+      const { blob, fileName, file } = await renderPosterImage(SHARE_DEFAULT_WIDTH, sourceRequest);
+      if (prepareRenderIdRef.current !== currentRenderId) return;
+      setCachedPosterImage({ blob, fileName, file });
+    } catch (error) {
+      if (prepareRenderIdRef.current !== currentRenderId) return;
+      setSearchError(getRequestErrorMessage(error, "Unable to prepare the poster image right now."));
+    } finally {
+      if (prepareRenderIdRef.current === currentRenderId) {
+        setIsPreparingPosterImage(false);
+      }
+    }
+  };
+
+  const getCachedPosterImage = async () => {
+    if (cachedPosterImage) {
+      return cachedPosterImage;
+    }
+
+    const sourceRequest = generatedPosterRequest ?? posterPayload;
+    setIsPreparingPosterImage(true);
+    try {
+      const rendered = await renderPosterImage(SHARE_DEFAULT_WIDTH, sourceRequest);
+      const cached = { blob: rendered.blob, fileName: rendered.fileName, file: rendered.file };
+      setCachedPosterImage(cached);
+      return cached;
+    } finally {
+      setIsPreparingPosterImage(false);
+    }
+  };
+
+  const handleExport = async () => {
+    setIsExporting(SHARE_DEFAULT_WIDTH);
+    try {
+      const { blob, fileName } = await getCachedPosterImage();
       downloadBlobAsFile(blob, fileName);
     } catch (error) {
       setSearchError(getRequestErrorMessage(error, "Poster export failed. Please try again."));
@@ -552,15 +599,14 @@ export function CreatePosterClient({ templateId, pageTitle, pageDescription, req
     }
   };
 
-  const handleShare = async (width: number) => {
-    setIsExporting(width);
+  const handleShare = async (includeSong: boolean) => {
+    setIsExporting(SHARE_DEFAULT_WIDTH);
     try {
-      const { blob, fileName } = await renderPosterImage(width);
-      const file = toJpegFile(blob, fileName);
+      const { blob, fileName, file } = await getCachedPosterImage();
       const sharePayload: ShareData = {
         files: [file],
         title: "Soundframe poster",
-        text: selectedTrack?.spotifyUrl ? `Listen to the song: ${selectedTrack.spotifyUrl}` : "",
+        ...(includeSong ? { text: `Listen to the song: ${selectedTrack?.spotifyUrl ?? ""}` } : {}),
       };
 
       const canShareFiles =
@@ -708,23 +754,28 @@ export function CreatePosterClient({ templateId, pageTitle, pageDescription, req
                 <div className="mt-4 grid w-full grid-cols-1 gap-3 sm:grid-cols-2">
                   <button
                     type="button"
-                    onClick={() => handleShare(SHARE_DEFAULT_WIDTH)}
-                    disabled={!showPoster || isExporting !== null}
-                    className="w-full rounded-full bg-stone-900 px-3 py-2 text-xs font-semibold text-white sm:col-span-2 disabled:opacity-60"
+                    onClick={() => handleShare(false)}
+                    disabled={!showPoster || isExporting !== null || isPreparingPosterImage}
+                    className="w-full rounded-full bg-stone-900 px-3 py-2 text-xs font-semibold text-white disabled:opacity-60"
                   >
-                    {isExporting === SHARE_DEFAULT_WIDTH ? "Sharing..." : "Share image"}
+                    {isPreparingPosterImage ? "Preparing image..." : isExporting === SHARE_DEFAULT_WIDTH ? "Sharing..." : "Share image"}
                   </button>
-                  {[500, 1000].map((width) => (
-                    <button
-                      key={width}
-                      type="button"
-                      onClick={() => handleExport(width)}
-                      disabled={!showPoster || isExporting !== null}
-                      className="w-full rounded-full border border-stone-300 bg-white px-3 py-2 text-xs font-semibold text-stone-800 disabled:opacity-60"
-                    >
-                      {isExporting === width ? "Exporting..." : `Download JPG (${width}px wide)`}
-                    </button>
-                  ))}
+                  <button
+                    type="button"
+                    onClick={() => handleShare(true)}
+                    disabled={!showPoster || isExporting !== null || isPreparingPosterImage}
+                    className="w-full rounded-full border border-stone-300 bg-white px-3 py-2 text-xs font-semibold text-stone-800 disabled:opacity-60"
+                  >
+                    {isPreparingPosterImage ? "Preparing image..." : isExporting === SHARE_DEFAULT_WIDTH ? "Sharing..." : "Share image + song"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleExport}
+                    disabled={!showPoster || isExporting !== null || isPreparingPosterImage}
+                    className="w-full rounded-full border border-stone-300 bg-white px-3 py-2 text-xs font-semibold text-stone-800 disabled:opacity-60 sm:col-span-2"
+                  >
+                    {isPreparingPosterImage ? "Preparing image..." : isExporting === SHARE_DEFAULT_WIDTH ? "Exporting..." : "Download image"}
+                  </button>
                 </div>
               </div>
 
