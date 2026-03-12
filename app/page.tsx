@@ -50,8 +50,9 @@ export default function Home() {
       <div className="mx-auto max-w-6xl px-6 py-8 md:px-8 md:py-10">
         <header className="flex items-center justify-between rounded-full border border-stone-200 bg-white/90 px-6 py-3">
           <p className={`${inter.className} text-xl tracking-tight`}>
-            <span className="font-bold text-[#111]">Sound</span>
-            <span className="font-light text-[#777]">frame</span>
+            <span className="font-bold text-[#111]">AZTE</span>
+            <span className="text-[#FF6B57]">.</span>
+            <span className="font-light text-[#777]">UNO</span>
           </p>
           <nav className="hidden gap-8 text-sm text-stone-600 md:flex">
             {navItems.map((item) => (

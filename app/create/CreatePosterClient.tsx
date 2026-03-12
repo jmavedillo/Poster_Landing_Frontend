@@ -645,8 +645,9 @@ export function CreatePosterClient({ templateId, pageTitle, pageDescription, req
       <div className="mx-auto max-w-6xl px-6 py-8 md:px-8 md:py-10">
         <header className="flex items-center justify-between rounded-full border border-stone-200 bg-white/90 px-6 py-3">
           <Link href="/" className={`${inter.className} text-xl tracking-tight`}>
-            <span className="font-bold text-[#111]">Sound</span>
-            <span className="font-light text-[#777]">frame</span>
+            <span className="font-bold text-[#111]">AZTE</span>
+            <span className="text-[#FF6B57]">.</span>
+            <span className="font-light text-[#777]">UNO</span>
           </Link>
           <Link
             href="/"
@@ -744,8 +745,9 @@ export function CreatePosterClient({ templateId, pageTitle, pageDescription, req
                   ) : (
                     <div className="legacy-poster-preview-empty" aria-label="Poster preview placeholder">
                       <p className={`${inter.className} legacy-poster-preview-brand`}>
-                        <span className="font-bold text-[#111]">Sound</span>
-                        <span className="font-light text-[#777]">frame</span>
+                        <span className="font-bold text-[#111]">AZTE</span>
+                        <span className="text-[#FF6B57]">.</span>
+                        <span className="font-light text-[#777]">UNO</span>
                       </p>
                     </div>
                   )}
