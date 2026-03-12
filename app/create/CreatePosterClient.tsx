@@ -560,7 +560,7 @@ export function CreatePosterClient({ templateId, pageTitle, pageDescription, req
       const sharePayload: ShareData = {
         files: [file],
         title: "Soundframe poster",
-        text: "Check out my poster!",
+        text: selectedTrack?.spotifyUrl ? `Listen to the song: ${selectedTrack.spotifyUrl}` : "",
       };
 
       const canShareFiles =
