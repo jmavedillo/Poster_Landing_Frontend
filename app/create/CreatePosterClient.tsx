@@ -62,6 +62,7 @@ const createTwoThemes: Array<{ label: string; value: PosterTheme }> = [
 
 const API_UNREACHABLE_MESSAGE =
   `Cannot reach the poster API at ${API_BASE_URL}. Set NEXT_PUBLIC_API_BASE_URL to your running backend URL.`;
+const SHARE_DEFAULT_WIDTH = 1000;
 
 const serializeBody = (body: unknown) => {
   if (typeof body === "string") return body;
@@ -149,6 +150,24 @@ const sanitizeFileName = (value: string) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 80) || "poster";
+
+const downloadBlobAsFile = (blob: Blob, fileName: string) => {
+  const downloadUrl = URL.createObjectURL(blob);
+  const linkEl = document.createElement("a");
+  linkEl.href = downloadUrl;
+  linkEl.download = fileName;
+  document.body.append(linkEl);
+  linkEl.click();
+  linkEl.remove();
+  URL.revokeObjectURL(downloadUrl);
+};
+
+const toJpegFile = (blob: Blob, fileName: string) => new File([blob], fileName, { type: "image/jpeg" });
+
+const isShareCancelled = (error: unknown) => error instanceof Error && error.name === "AbortError";
+
+const isUnsupportedShareError = (error: unknown) =>
+  error instanceof Error && (error.name === "TypeError" || error.name === "NotSupportedError");
 
 const fetchJson = async <T,>(url: string): Promise<T> => {
   const response = await fetch(url);
@@ -494,42 +513,82 @@ export function CreatePosterClient({ templateId, pageTitle, pageDescription, req
     }
   };
 
+  const renderPosterImage = async (width: number) => {
+    const renderRequest: PosterRenderRequest = buildPosterRenderRequest({
+      template: templateId,
+      track: posterPayload.track,
+      artwork: posterPayload.artwork,
+      theme,
+      output: { width, format: "jpeg", quality: 0.92 },
+    });
+    if (process.env.NODE_ENV === "development") {
+      console.log("[CreatePosterClient] render template", renderRequest.template);
+    }
+
+    const response = await fetch(`${API_BASE_URL}/api/posters/render`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(renderRequest),
+    });
+
+    if (!response.ok) {
+      throw new Error(await readErrorResponse(response));
+    }
+
+    const blob = await response.blob();
+    const fileName = `${sanitizeFileName(posterPayload.track.title)}-poster-${width}.jpg`;
+    return { blob, fileName };
+  };
+
   const handleExport = async (width: number) => {
     setIsExporting(width);
     try {
-      const renderRequest: PosterRenderRequest = buildPosterRenderRequest({
-        template: templateId,
-        track: posterPayload.track,
-        artwork: posterPayload.artwork,
-        theme,
-        output: { width, format: "jpeg", quality: 0.92 },
-      });
-      if (process.env.NODE_ENV === "development") {
-        console.log("[CreatePosterClient] render template", renderRequest.template);
-      }
-
-      const response = await fetch(`${API_BASE_URL}/api/posters/render`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(renderRequest),
-      });
-
-      if (!response.ok) {
-        throw new Error(await readErrorResponse(response));
-      }
-
-      const blob = await response.blob();
-      const downloadUrl = URL.createObjectURL(blob);
-      const fileName = `${sanitizeFileName(posterPayload.track.title)}-poster-${width}.jpg`;
-      const linkEl = document.createElement("a");
-      linkEl.href = downloadUrl;
-      linkEl.download = fileName;
-      document.body.append(linkEl);
-      linkEl.click();
-      linkEl.remove();
-      URL.revokeObjectURL(downloadUrl);
+      const { blob, fileName } = await renderPosterImage(width);
+      downloadBlobAsFile(blob, fileName);
     } catch (error) {
       setSearchError(getRequestErrorMessage(error, "Poster export failed. Please try again."));
+    } finally {
+      setIsExporting(null);
+    }
+  };
+
+  const handleShare = async (width: number) => {
+    setIsExporting(width);
+    try {
+      const { blob, fileName } = await renderPosterImage(width);
+      const file = toJpegFile(blob, fileName);
+      const sharePayload: ShareData = {
+        files: [file],
+        title: "Soundframe poster",
+        text: "Check out my poster!",
+      };
+
+      const canShareFiles =
+        typeof navigator !== "undefined" &&
+        typeof navigator.share === "function" &&
+        (typeof navigator.canShare !== "function" || navigator.canShare({ files: [file] }));
+
+      if (!canShareFiles) {
+        downloadBlobAsFile(blob, fileName);
+        return;
+      }
+
+      try {
+        await navigator.share(sharePayload);
+      } catch (error) {
+        if (isShareCancelled(error)) {
+          return;
+        }
+
+        if (isUnsupportedShareError(error)) {
+          downloadBlobAsFile(blob, fileName);
+          return;
+        }
+
+        throw error;
+      }
+    } catch (error) {
+      setSearchError(getRequestErrorMessage(error, "Poster share failed. Please try again."));
     } finally {
       setIsExporting(null);
     }
@@ -647,6 +706,14 @@ export function CreatePosterClient({ templateId, pageTitle, pageDescription, req
                 </div>
 
                 <div className="mt-4 grid w-full grid-cols-1 gap-3 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={() => handleShare(SHARE_DEFAULT_WIDTH)}
+                    disabled={!showPoster || isExporting !== null}
+                    className="w-full rounded-full bg-stone-900 px-3 py-2 text-xs font-semibold text-white sm:col-span-2 disabled:opacity-60"
+                  >
+                    {isExporting === SHARE_DEFAULT_WIDTH ? "Sharing..." : "Share image"}
+                  </button>
                   {[500, 1000].map((width) => (
                     <button
                       key={width}
