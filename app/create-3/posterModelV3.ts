@@ -8,6 +8,7 @@ export type MapMessageRenderRequest = {
     title: string;
     artist: string;
     coverUrl: string;
+    spotifyUrl: string;
   };
   place: {
     title: string;
@@ -34,6 +35,7 @@ type BuildMapMessageRequestInput = {
     title: string;
     artist: string;
     coverUrl: string;
+    spotifyUrl: string;
   };
   time: {
     dateText: string;

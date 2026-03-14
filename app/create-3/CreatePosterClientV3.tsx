@@ -24,7 +24,11 @@ type Track = {
   durationSeconds: number;
   coverUrl: string | null;
   uri?: string | null;
+  url?: string | null;
   spotifyUrl?: string | null;
+  external_urls?: {
+    spotify?: string | null;
+  } | null;
 };
 
 type PreviewResponseModel = {
@@ -109,6 +113,9 @@ const normalizeText = (value: string) =>
     .trim();
 
 const getTrackArtists = (track: Track | null) => (track?.artists || []).map((artist) => artist.name).join(", ");
+
+const getTrackSpotifyUrl = (track: Track | null) =>
+  track?.spotifyUrl || track?.external_urls?.spotify || track?.url || "";
 
 const fetchJson = async <T,>(url: string): Promise<T> => {
   const response = await fetch(url);
@@ -343,6 +350,7 @@ export function CreatePosterClientV3() {
           title: selectedTrack?.title ?? "",
           artist: getTrackArtists(selectedTrack),
           coverUrl: selectedTrack?.coverUrl ?? "",
+          spotifyUrl: getTrackSpotifyUrl(selectedTrack),
         },
         time: {
           dateText,
@@ -447,6 +455,7 @@ export function CreatePosterClientV3() {
           title: selectedTrack.title,
           artist: getTrackArtists(selectedTrack),
           coverUrl: selectedTrack.coverUrl ?? "",
+          spotifyUrl: getTrackSpotifyUrl(selectedTrack),
         },
         time: {
           dateText,
