@@ -155,6 +155,7 @@ export function CreatePosterClientV3() {
   const [generatedPosterRequest, setGeneratedPosterRequest] = useState<MapMessageRenderRequest | null>(null);
   const [cachedPosterImage, setCachedPosterImage] = useState<{ blob: Blob; file: File; fileName: string } | null>(null);
   const prepareRenderIdRef = useRef(0);
+  const trimmedLocationQuery = locationQuery.trim();
 
   useEffect(() => {
     const normalizedArtistTerm = normalizeText(artistQuery);
@@ -246,7 +247,7 @@ export function CreatePosterClientV3() {
   const posterPayload = useMemo(
     () =>
       buildMapMessageRenderRequest({
-        mapQuery: locationQuery,
+        mapQuery: trimmedLocationQuery,
         song: {
           title: selectedTrack?.title ?? "",
           artist: getTrackArtists(selectedTrack),
@@ -261,7 +262,7 @@ export function CreatePosterClientV3() {
           main: messageMain,
         },
       }),
-    [locationQuery, selectedTrack, dateText, timeText, messageIntro, messageMain],
+    [trimmedLocationQuery, selectedTrack, dateText, timeText, messageIntro, messageMain],
   );
 
   const renderPosterImage = async (width: number, sourceRequest?: MapMessageRenderRequest) => {
@@ -273,6 +274,9 @@ export function CreatePosterClientV3() {
       message: baseRequest.message,
       output: { width, format: "jpeg", quality: 0.92 },
     });
+
+    console.log("[CreateV3] render location input", trimmedLocationQuery);
+    console.log("[CreateV3] render payload", renderRequest);
 
     const response = await fetch(`${API_BASE_URL}/api/posters/render`, {
       method: "POST",
@@ -330,7 +334,7 @@ export function CreatePosterClientV3() {
     event.preventDefault();
     if (isGenerating) return;
 
-    if (!locationQuery.trim()) {
+    if (!trimmedLocationQuery) {
       setFormError("Please enter a location to generate this poster");
       return;
     }
@@ -346,7 +350,7 @@ export function CreatePosterClientV3() {
     setGeneratedPosterRequest(null);
     try {
       const previewRequest = buildMapMessageRenderRequest({
-        mapQuery: locationQuery,
+        mapQuery: trimmedLocationQuery,
         song: {
           title: selectedTrack.title,
           artist: getTrackArtists(selectedTrack),
@@ -361,6 +365,9 @@ export function CreatePosterClientV3() {
           main: messageMain,
         },
       });
+
+      console.log("[CreateV3] location input", trimmedLocationQuery);
+      console.log("[CreateV3] preview payload", previewRequest);
 
       const response = await fetch(`${API_BASE_URL}/api/posters/preview`, {
         method: "POST",
