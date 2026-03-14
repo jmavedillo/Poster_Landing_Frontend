@@ -27,6 +27,26 @@ type Track = {
   spotifyUrl?: string | null;
 };
 
+type PreviewResponseModel = {
+  song?: {
+    spotifyUrl?: string | null;
+  };
+  map?: {
+    lat?: number | null;
+    lng?: number | null;
+    googleMapsUrl?: string | null;
+    googleMapsDirectionsUrl?: string | null;
+  };
+};
+
+type MapShareMetadata = {
+  spotifyUrl: string | null;
+  googleMapsDirectionsUrl: string | null;
+  googleMapsUrl: string | null;
+  lat: number | null;
+  lng: number | null;
+};
+
 const inter = Inter({ subsets: ["latin"] });
 
 const MIN_QUERY_LENGTH = 3;
@@ -134,6 +154,31 @@ const isShareCancelled = (error: unknown) => error instanceof Error && error.nam
 const isUnsupportedShareError = (error: unknown) =>
   error instanceof Error && (error.name === "TypeError" || error.name === "NotSupportedError");
 
+const resolveGoogleMapsUrl = (metadata: MapShareMetadata): string | null => {
+  if (metadata.googleMapsDirectionsUrl) return metadata.googleMapsDirectionsUrl;
+  if (metadata.googleMapsUrl) return metadata.googleMapsUrl;
+
+  if (typeof metadata.lat === "number" && typeof metadata.lng === "number") {
+    return `https://www.google.com/maps/dir/?api=1&destination=${metadata.lat},${metadata.lng}`;
+  }
+
+  return null;
+};
+
+const resolveMapShareText = (metadata: MapShareMetadata) => {
+  const spotifyUrl = metadata.spotifyUrl;
+  const googleMapsUrl = resolveGoogleMapsUrl(metadata);
+  const lines = [spotifyUrl ? `Mood: ${spotifyUrl}` : null, googleMapsUrl ? `Where: ${googleMapsUrl}` : null].filter(
+    (line): line is string => Boolean(line),
+  );
+
+  return {
+    spotifyUrl,
+    googleMapsUrl,
+    shareText: lines.join("\n"),
+  };
+};
+
 const getRequestErrorMessage = (error: unknown, fallback: string) => {
   const message = error instanceof Error ? error.message : "";
   const normalizedMessage = message.toLowerCase();
@@ -169,11 +214,23 @@ export function CreatePosterClientV3() {
   const [isExporting, setIsExporting] = useState<number | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [previewHtml, setPreviewHtml] = useState<string | null>(null);
+  const [mapShareMetadata, setMapShareMetadata] = useState<MapShareMetadata | null>(null);
   const [generatedPosterRequest, setGeneratedPosterRequest] = useState<MapMessageRenderRequest | null>(null);
   const [cachedPosterImage, setCachedPosterImage] = useState<{ blob: Blob; file: File; fileName: string } | null>(null);
   const prepareRenderIdRef = useRef(0);
   const [previewDocumentUrl, setPreviewDocumentUrl] = useState<string | null>(null);
   const trimmedLocationQuery = locationQuery.trim();
+  const { shareText: linkShareText } = useMemo(
+    () =>
+      mapShareMetadata
+        ? resolveMapShareText(mapShareMetadata)
+        : {
+            spotifyUrl: null,
+            googleMapsUrl: null,
+            shareText: "",
+          },
+    [mapShareMetadata],
+  );
 
   useEffect(() => {
     if (!previewHtml) {
@@ -382,6 +439,7 @@ export function CreatePosterClientV3() {
     prepareRenderIdRef.current += 1;
     setCachedPosterImage(null);
     setGeneratedPosterRequest(null);
+    setMapShareMetadata(null);
     try {
       const previewRequest = buildMapMessageRenderRequest({
         mapQuery: trimmedLocationQuery,
@@ -410,8 +468,15 @@ export function CreatePosterClientV3() {
       });
 
       if (!response.ok) throw new Error(await readErrorResponse(response));
-      const payload = (await response.json()) as { html?: string };
+      const payload = (await response.json()) as { html?: string; model?: PreviewResponseModel };
       setPreviewHtml(payload.html || null);
+      setMapShareMetadata({
+        spotifyUrl: payload.model?.song?.spotifyUrl ?? null,
+        googleMapsDirectionsUrl: payload.model?.map?.googleMapsDirectionsUrl ?? null,
+        googleMapsUrl: payload.model?.map?.googleMapsUrl ?? null,
+        lat: payload.model?.map?.lat ?? null,
+        lng: payload.model?.map?.lng ?? null,
+      });
       setShowPoster(true);
       setFormError(null);
       setGeneratedPosterRequest(previewRequest);
@@ -435,14 +500,14 @@ export function CreatePosterClientV3() {
     }
   };
 
-  const handleShare = async (includeMessage: boolean) => {
+  const handleShare = async (includeLinks: boolean) => {
     setIsExporting(SHARE_DEFAULT_WIDTH);
     try {
       const { blob, fileName, file } = await getCachedPosterImage();
       const sharePayload: ShareData = {
         files: [file],
         title: "Soundframe poster",
-        ...(includeMessage && messageMain ? { text: messageMain } : {}),
+        ...(includeLinks && linkShareText ? { text: linkShareText } : {}),
       };
 
       const canShareFiles =
@@ -587,10 +652,10 @@ export function CreatePosterClientV3() {
                   <button
                     type="button"
                     onClick={() => handleShare(true)}
-                    disabled={!showPoster || isExporting !== null || isPreparingPosterImage}
+                    disabled={!showPoster || !linkShareText || isExporting !== null || isPreparingPosterImage}
                     className="w-full rounded-full border border-stone-300 bg-white px-3 py-2 text-xs font-semibold text-stone-800 disabled:opacity-60"
                   >
-                    {isPreparingPosterImage ? "Preparing image..." : isExporting === SHARE_DEFAULT_WIDTH ? "Sharing..." : "Share image + message"}
+                    {isPreparingPosterImage ? "Preparing image..." : isExporting === SHARE_DEFAULT_WIDTH ? "Sharing..." : "Share with links"}
                   </button>
                   <button
                     type="button"
