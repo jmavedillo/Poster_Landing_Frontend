@@ -59,6 +59,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3
 const API_UNREACHABLE_MESSAGE =
   `Cannot reach the poster API at ${API_BASE_URL}. Set NEXT_PUBLIC_API_BASE_URL to your running backend URL.`;
 const SHARE_DEFAULT_WIDTH = 1000;
+const NOMINATIM_REVERSE_GEOCODE_URL = "https://nominatim.openstreetmap.org/reverse";
 
 const ensureHtmlBaseHref = (html: string, baseUrl: string) => {
   if (!html.trim()) return "";
@@ -201,6 +202,40 @@ const getRequestErrorMessage = (error: unknown, fallback: string) => {
   return message || fallback;
 };
 
+const toLocalDateInputValue = (date: Date) => {
+  const timezoneOffsetMs = date.getTimezoneOffset() * 60 * 1000;
+  return new Date(date.getTime() - timezoneOffsetMs).toISOString().slice(0, 10);
+};
+
+const toLocalTimeInputValue = (date: Date) => {
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  return `${hours}:${minutes}`;
+};
+
+const reverseGeocodeCoordinates = async (latitude: number, longitude: number): Promise<string> => {
+  const params = new URLSearchParams({
+    format: "jsonv2",
+    lat: String(latitude),
+    lon: String(longitude),
+    zoom: "16",
+  });
+  const response = await fetch(`${NOMINATIM_REVERSE_GEOCODE_URL}?${params.toString()}`);
+
+  if (!response.ok) {
+    throw new Error("Could not resolve your current location. You can still type it manually.");
+  }
+
+  const payload = (await response.json()) as { display_name?: string; name?: string };
+  const resolvedLocation = payload?.display_name || payload?.name;
+
+  if (!resolvedLocation) {
+    throw new Error("Could not resolve your current location. You can still type it manually.");
+  }
+
+  return resolvedLocation;
+};
+
 export function CreatePosterClientV3() {
   const [locationQuery, setLocationQuery] = useState("");
   const [artistQuery, setArtistQuery] = useState("");
@@ -209,6 +244,8 @@ export function CreatePosterClientV3() {
   const [timeText, setTimeText] = useState("");
   const [messageIntro, setMessageIntro] = useState("");
   const [messageMain, setMessageMain] = useState("");
+  const [useCurrentContext, setUseCurrentContext] = useState(false);
+  const [autoFillHelperMessage, setAutoFillHelperMessage] = useState<string | null>(null);
 
   const [artistResults, setArtistResults] = useState<Artist[]>([]);
   const [trackResults, setTrackResults] = useState<Track[]>([]);
@@ -238,6 +275,43 @@ export function CreatePosterClientV3() {
           },
     [mapShareMetadata],
   );
+
+  const applyCurrentDateTimeAndLocation = async () => {
+    const now = new Date();
+    setDateText(toLocalDateInputValue(now));
+    setTimeText(toLocalTimeInputValue(now));
+    setAutoFillHelperMessage(null);
+
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      setAutoFillHelperMessage("Date and time were set. Location is unavailable on this browser, so please enter it manually.");
+      return;
+    }
+
+    try {
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0,
+        });
+      });
+
+      const resolvedLocation = await reverseGeocodeCoordinates(position.coords.latitude, position.coords.longitude);
+      setLocationQuery(resolvedLocation);
+    } catch {
+      setAutoFillHelperMessage("Date and time were set. We could not retrieve your location, so please enter it manually.");
+    }
+  };
+
+  const handleUseCurrentContextToggle = async (enabled: boolean) => {
+    setUseCurrentContext(enabled);
+    if (enabled) {
+      await applyCurrentDateTimeAndLocation();
+      return;
+    }
+
+    setAutoFillHelperMessage(null);
+  };
 
   useEffect(() => {
     if (!previewHtml) {
@@ -573,9 +647,32 @@ export function CreatePosterClientV3() {
             <p className="mt-2 text-sm text-stone-600">Set location, song, date, time, and your message to render your map-message composition.</p>
 
             <form className="mt-6 space-y-4" onSubmit={handleGeneratePoster}>
+              <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-stone-200 bg-stone-50 p-3 text-sm font-medium text-stone-700">
+                <input
+                  type="checkbox"
+                  checked={useCurrentContext}
+                  onChange={(e) => {
+                    void handleUseCurrentContextToggle(e.target.checked);
+                  }}
+                  className="mt-1 h-5 w-5 flex-none accent-stone-900"
+                />
+                <span>Use my current location, date and time</span>
+              </label>
+              {autoFillHelperMessage ? <p className="text-xs text-amber-700">{autoFillHelperMessage}</p> : null}
+
               <label className="block text-sm font-semibold text-stone-700">
                 Location
                 <input type="text" value={locationQuery} onChange={(e) => setLocationQuery(e.target.value)} className="mt-2 w-full rounded-xl border border-stone-300 px-3 py-2" />
+              </label>
+
+              <label className="block text-sm font-semibold text-stone-700">
+                Date
+                <input type="date" value={dateText} onChange={(e) => setDateText(e.target.value)} className="mt-2 w-full rounded-xl border border-stone-300 px-3 py-2" />
+              </label>
+
+              <label className="block text-sm font-semibold text-stone-700">
+                Time
+                <input type="time" value={timeText} onChange={(e) => setTimeText(e.target.value)} className="mt-2 w-full rounded-xl border border-stone-300 px-3 py-2" />
               </label>
 
               <label className="block text-sm font-semibold text-stone-700">
@@ -597,16 +694,6 @@ export function CreatePosterClientV3() {
                   <option key={track.id} value={`${track.title} — ${getTrackArtists(track)}`} />
                 ))}
               </datalist>
-
-              <label className="block text-sm font-semibold text-stone-700">
-                Date
-                <input type="date" value={dateText} onChange={(e) => setDateText(e.target.value)} className="mt-2 w-full rounded-xl border border-stone-300 px-3 py-2" />
-              </label>
-
-              <label className="block text-sm font-semibold text-stone-700">
-                Time
-                <input type="time" value={timeText} onChange={(e) => setTimeText(e.target.value)} className="mt-2 w-full rounded-xl border border-stone-300 px-3 py-2" />
-              </label>
 
               <label className="block text-sm font-semibold text-stone-700">
                 Message intro
