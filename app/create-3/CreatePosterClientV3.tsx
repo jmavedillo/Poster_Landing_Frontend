@@ -36,6 +36,23 @@ const API_UNREACHABLE_MESSAGE =
   `Cannot reach the poster API at ${API_BASE_URL}. Set NEXT_PUBLIC_API_BASE_URL to your running backend URL.`;
 const SHARE_DEFAULT_WIDTH = 1000;
 
+const ensureHtmlBaseHref = (html: string, baseUrl: string) => {
+  if (!html.trim()) return "";
+
+  const baseTag = `<base href="${baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`}">`;
+  if (/<base\s/i.test(html)) return html;
+
+  if (/<head[^>]*>/i.test(html)) {
+    return html.replace(/<head([^>]*)>/i, `<head$1>${baseTag}`);
+  }
+
+  if (/<html[^>]*>/i.test(html)) {
+    return html.replace(/<html([^>]*)>/i, `<html$1><head>${baseTag}</head>`);
+  }
+
+  return `<!doctype html><html><head>${baseTag}</head><body>${html}</body></html>`;
+};
+
 const serializeBody = (body: unknown) => {
   if (typeof body === "string") return body;
   if (body == null) return "";
@@ -155,7 +172,24 @@ export function CreatePosterClientV3() {
   const [generatedPosterRequest, setGeneratedPosterRequest] = useState<MapMessageRenderRequest | null>(null);
   const [cachedPosterImage, setCachedPosterImage] = useState<{ blob: Blob; file: File; fileName: string } | null>(null);
   const prepareRenderIdRef = useRef(0);
+  const [previewDocumentUrl, setPreviewDocumentUrl] = useState<string | null>(null);
   const trimmedLocationQuery = locationQuery.trim();
+
+  useEffect(() => {
+    if (!previewHtml) {
+      setPreviewDocumentUrl(null);
+      return;
+    }
+
+    const renderedHtml = ensureHtmlBaseHref(previewHtml, API_BASE_URL);
+    const blob = new Blob([renderedHtml], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    setPreviewDocumentUrl(url);
+
+    return () => {
+      URL.revokeObjectURL(url);
+    };
+  }, [previewHtml]);
 
   useEffect(() => {
     const normalizedArtistTerm = normalizeText(artistQuery);
@@ -526,9 +560,9 @@ export function CreatePosterClientV3() {
             <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
               <div className="w-full max-w-[400px]">
                 <div className="legacy-poster-shell">
-                  {previewHtml ? (
+                  {previewDocumentUrl ? (
                     <div className="legacy-poster-preview-viewport">
-                      <iframe title="Poster preview" srcDoc={previewHtml} className="legacy-poster-preview-frame" />
+                      <iframe title="Poster preview" src={previewDocumentUrl} className="legacy-poster-preview-frame" />
                     </div>
                   ) : (
                     <div className="legacy-poster-preview-empty" aria-label="Poster preview placeholder">
