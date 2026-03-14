@@ -51,6 +51,14 @@ type MapShareMetadata = {
   lng: number | null;
 };
 
+type MapMessageStyleVariant = "style1" | "style2" | "style3";
+
+const MAP_MESSAGE_STYLE_OPTIONS: Array<{ value: MapMessageStyleVariant; label: string }> = [
+  { value: "style1", label: "BNR" },
+  { value: "style2", label: "style2" },
+  { value: "style3", label: "style3" },
+];
+
 const inter = Inter({ subsets: ["latin"] });
 
 const MIN_QUERY_LENGTH = 3;
@@ -244,6 +252,7 @@ export function CreatePosterClientV3() {
   const [timeText, setTimeText] = useState("");
   const [messageIntro, setMessageIntro] = useState("");
   const [messageMain, setMessageMain] = useState("");
+  const [styleVariant, setStyleVariant] = useState<MapMessageStyleVariant>("style1");
   const [useCurrentContext, setUseCurrentContext] = useState(false);
   const [autoFillHelperMessage, setAutoFillHelperMessage] = useState<string | null>(null);
 
@@ -419,6 +428,7 @@ export function CreatePosterClientV3() {
   const posterPayload = useMemo(
     () =>
       buildMapMessageRenderRequest({
+        styleVariant,
         mapQuery: trimmedLocationQuery,
         song: {
           title: selectedTrack?.title ?? "",
@@ -435,12 +445,13 @@ export function CreatePosterClientV3() {
           main: messageMain,
         },
       }),
-    [trimmedLocationQuery, selectedTrack, dateText, timeText, messageIntro, messageMain],
+    [styleVariant, trimmedLocationQuery, selectedTrack, dateText, timeText, messageIntro, messageMain],
   );
 
   const renderPosterImage = async (width: number, sourceRequest?: MapMessageRenderRequest) => {
     const baseRequest = sourceRequest ?? generatedPosterRequest ?? posterPayload;
     const renderRequest = buildMapMessageRenderRequest({
+      styleVariant: baseRequest.styleVariant,
       mapQuery: baseRequest.mapQuery,
       song: baseRequest.song,
       time: baseRequest.time,
@@ -524,6 +535,7 @@ export function CreatePosterClientV3() {
     setMapShareMetadata(null);
     try {
       const previewRequest = buildMapMessageRenderRequest({
+        styleVariant,
         mapQuery: trimmedLocationQuery,
         song: {
           title: selectedTrack.title,
@@ -704,6 +716,29 @@ export function CreatePosterClientV3() {
                 Message main
                 <textarea value={messageMain} onChange={(e) => setMessageMain(e.target.value)} className="mt-2 w-full rounded-xl border border-stone-300 px-3 py-2" rows={3} />
               </label>
+
+
+              <fieldset className="block text-sm font-semibold text-stone-700">
+                <legend>Visual style</legend>
+                <div className="mt-2 grid grid-cols-3 gap-2">
+                  {MAP_MESSAGE_STYLE_OPTIONS.map((option) => {
+                    const isSelected = styleVariant === option.value;
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => setStyleVariant(option.value)}
+                        className={`rounded-xl border px-3 py-2 text-xs font-semibold transition ${
+                          isSelected ? "border-stone-900 bg-stone-900 text-white" : "border-stone-300 bg-white text-stone-700 hover:bg-stone-100"
+                        }`}
+                        aria-pressed={isSelected}
+                      >
+                        {option.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </fieldset>
 
               {formError ? <p className="text-xs text-red-600">{formError}</p> : null}
 
