@@ -1,6 +1,7 @@
 export type MapMessageRenderRequest = {
   template: "map_message_v1";
   styleVariant: "style1" | "style2" | "style3";
+  photoUrl?: string | null;
   mapQuery: string;
   marker: {
     type: "pin";
@@ -32,6 +33,7 @@ export type MapMessageRenderRequest = {
 
 type BuildMapMessageRequestInput = {
   styleVariant?: "style1" | "style2" | "style3";
+  photoUrl?: string | null;
   mapQuery: string;
   song: {
     title: string;
@@ -54,9 +56,10 @@ type BuildMapMessageRequestInput = {
   };
 };
 
-export const buildMapMessageRenderRequest = ({ styleVariant = "style1", mapQuery, song, time, message, output }: BuildMapMessageRequestInput): MapMessageRenderRequest => ({
+export const buildMapMessageRenderRequest = ({ styleVariant = "style1", photoUrl = null, mapQuery, song, time, message, output }: BuildMapMessageRequestInput): MapMessageRenderRequest => ({
   template: "map_message_v1",
   styleVariant,
+  ...(photoUrl ? { photoUrl } : {}),
   mapQuery,
   marker: {
     type: "pin",

@@ -1,7 +1,8 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Inter } from "next/font/google";
 import "../create/legacyPoster.css";
 import { buildMapMessageRenderRequest, MapMessageRenderRequest } from "./posterModelV3";
@@ -64,6 +65,7 @@ const inter = Inter({ subsets: ["latin"] });
 const MIN_QUERY_LENGTH = 3;
 const DEBOUNCE_MS = 300;
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001";
+const IMGBB_API_KEY = process.env.NEXT_PUBLIC_IMGBB_API_KEY ?? "";
 const API_UNREACHABLE_MESSAGE =
   `Cannot reach the poster API at ${API_BASE_URL}. Set NEXT_PUBLIC_API_BASE_URL to your running backend URL.`;
 const SHARE_DEFAULT_WIDTH = 1000;
@@ -210,6 +212,84 @@ const getRequestErrorMessage = (error: unknown, fallback: string) => {
   return message || fallback;
 };
 
+
+const loadImageElement = (file: File) =>
+  new Promise<HTMLImageElement>((resolve, reject) => {
+    const objectUrl = URL.createObjectURL(file);
+    const image: HTMLImageElement = document.createElement("img");
+
+    image.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve(image);
+    };
+
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error("Unable to read the selected image."));
+    };
+
+    image.src = objectUrl;
+  });
+
+const compressImageFile = async (file: File) => {
+  const image = await loadImageElement(file);
+  const targetWidth = 1000;
+  const targetHeight = Math.max(1, Math.round((image.height / image.width) * targetWidth));
+  const canvas = document.createElement("canvas");
+  canvas.width = targetWidth;
+  canvas.height = targetHeight;
+
+  const context = canvas.getContext("2d");
+  if (!context) {
+    throw new Error("Unable to process the image in this browser.");
+  }
+
+  context.drawImage(image, 0, 0, targetWidth, targetHeight);
+
+  const blob = await new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob(
+      (value) => {
+        if (!value) {
+          reject(new Error("Unable to compress the image. Please try another file."));
+          return;
+        }
+
+        resolve(value);
+      },
+      "image/jpeg",
+      0.85,
+    );
+  });
+
+  return blob;
+};
+
+const uploadImageToImgbb = async (imageBlob: Blob) => {
+  if (!IMGBB_API_KEY) {
+    throw new Error("Missing NEXT_PUBLIC_IMGBB_API_KEY. Add it to your frontend environment.");
+  }
+
+  const formData = new FormData();
+  formData.append("image", imageBlob, "cover.jpg");
+
+  const response = await fetch(`https://api.imgbb.com/1/upload?key=${encodeURIComponent(IMGBB_API_KEY)}&expiration=60`, {
+    method: "POST",
+    body: formData,
+  });
+
+  const payload = (await response.json()) as {
+    data?: { url?: string; display_url?: string };
+    error?: { message?: string };
+  };
+
+  if (!response.ok || !payload?.data?.url) {
+    const detail = payload?.error?.message ? `: ${payload.error.message}` : "";
+    throw new Error(`Image upload failed${detail}`);
+  }
+
+  return payload.data.url;
+};
+
 const toLocalDateInputValue = (date: Date) => {
   const timezoneOffsetMs = date.getTimezoneOffset() * 60 * 1000;
   return new Date(date.getTime() - timezoneOffsetMs).toISOString().slice(0, 10);
@@ -255,6 +335,10 @@ export function CreatePosterClientV3() {
   const [styleVariant, setStyleVariant] = useState<MapMessageStyleVariant>("style1");
   const [useCurrentContext, setUseCurrentContext] = useState(false);
   const [autoFillHelperMessage, setAutoFillHelperMessage] = useState<string | null>(null);
+  const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
+  const [uploadedPhotoUrl, setUploadedPhotoUrl] = useState<string | null>(null);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
 
   const [artistResults, setArtistResults] = useState<Artist[]>([]);
   const [trackResults, setTrackResults] = useState<Track[]>([]);
@@ -320,6 +404,49 @@ export function CreatePosterClientV3() {
     }
 
     setAutoFillHelperMessage(null);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (photoPreviewUrl?.startsWith("blob:")) {
+        URL.revokeObjectURL(photoPreviewUrl);
+      }
+    };
+  }, [photoPreviewUrl]);
+
+  const handlePhotoUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] ?? null;
+    setShowPoster(false);
+
+    setPhotoPreviewUrl((previousPhotoUrl) => {
+      if (previousPhotoUrl?.startsWith("blob:")) {
+        URL.revokeObjectURL(previousPhotoUrl);
+      }
+
+      if (!file) return null;
+      return URL.createObjectURL(file);
+    });
+
+    setUploadedPhotoUrl(null);
+    setPhotoError(null);
+    setFormError(null);
+
+    if (!file) {
+      return;
+    }
+
+    setIsUploadingPhoto(true);
+
+    try {
+      const compressedImage = await compressImageFile(file);
+      const hostedUrl = await uploadImageToImgbb(compressedImage);
+      setUploadedPhotoUrl(hostedUrl);
+    } catch (error) {
+      setPhotoError(getRequestErrorMessage(error, "Unable to upload your photo right now."));
+      setUploadedPhotoUrl(null);
+    } finally {
+      setIsUploadingPhoto(false);
+    }
   };
 
   useEffect(() => {
@@ -430,6 +557,7 @@ export function CreatePosterClientV3() {
       buildMapMessageRenderRequest({
         styleVariant,
         mapQuery: trimmedLocationQuery,
+        photoUrl: uploadedPhotoUrl,
         song: {
           title: selectedTrack?.title ?? "",
           artist: getTrackArtists(selectedTrack),
@@ -445,7 +573,7 @@ export function CreatePosterClientV3() {
           main: messageMain,
         },
       }),
-    [styleVariant, trimmedLocationQuery, selectedTrack, dateText, timeText, messageIntro, messageMain],
+    [styleVariant, trimmedLocationQuery, selectedTrack, dateText, timeText, messageIntro, messageMain, uploadedPhotoUrl],
   );
 
   const renderPosterImage = async (width: number, sourceRequest?: MapMessageRenderRequest) => {
@@ -453,6 +581,7 @@ export function CreatePosterClientV3() {
     const renderRequest = buildMapMessageRenderRequest({
       styleVariant: baseRequest.styleVariant,
       mapQuery: baseRequest.mapQuery,
+      photoUrl: baseRequest.photoUrl ?? null,
       song: baseRequest.song,
       time: baseRequest.time,
       message: baseRequest.message,
@@ -537,6 +666,7 @@ export function CreatePosterClientV3() {
       const previewRequest = buildMapMessageRenderRequest({
         styleVariant,
         mapQuery: trimmedLocationQuery,
+        photoUrl: uploadedPhotoUrl,
         song: {
           title: selectedTrack.title,
           artist: getTrackArtists(selectedTrack),
@@ -739,6 +869,25 @@ export function CreatePosterClientV3() {
                   })}
                 </div>
               </fieldset>
+
+
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold text-stone-700">
+                  Add photo (optional)
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handlePhotoUpload}
+                    className="mt-2 w-full rounded-xl border border-stone-300 px-3 py-2"
+                  />
+                </label>
+                {isUploadingPhoto ? <p className="text-xs text-stone-500">Processing and uploading your image...</p> : null}
+                {!isUploadingPhoto && uploadedPhotoUrl ? <p className="text-xs text-emerald-700">Image uploaded successfully. Temporary link ready.</p> : null}
+                {photoPreviewUrl ? (
+                  <Image src={photoPreviewUrl} alt="Uploaded preview" width={96} height={96} unoptimized className="h-24 w-24 rounded-lg border border-stone-200 object-cover" />
+                ) : null}
+                {photoError ? <p className="text-xs text-red-600">{photoError}</p> : null}
+              </div>
 
               {formError ? <p className="text-xs text-red-600">{formError}</p> : null}
 
