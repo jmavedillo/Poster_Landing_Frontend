@@ -14,10 +14,16 @@ type ViewerBounds = {
   y: number;
 };
 
+type ViewerImageSize = {
+  width: number;
+  height: number;
+};
+
 export function PosterExamplesClient({ images }: { images: ExampleImage[] }) {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [bounds, setBounds] = useState<ViewerBounds>({ x: 0, y: 0 });
+  const [viewerImageSize, setViewerImageSize] = useState<ViewerImageSize>({ width: 0, height: 0 });
 
   const activeImage = activeIndex !== null ? images[activeIndex] : null;
 
@@ -48,6 +54,11 @@ export function PosterExamplesClient({ images }: { images: ExampleImage[] }) {
       const renderedWidth = img.naturalWidth * ratio;
       const renderedHeight = img.naturalHeight * ratio;
 
+      setViewerImageSize({
+        width: renderedWidth,
+        height: renderedHeight,
+      });
+
       setBounds({
         x: Math.max(0, (renderedWidth - vw) / 2),
         y: Math.max(0, (renderedHeight - vh) / 2),
@@ -68,17 +79,18 @@ export function PosterExamplesClient({ images }: { images: ExampleImage[] }) {
   }, []);
 
   const hasImages = images.length > 0;
+  const isPannable = bounds.x > 0 || bounds.y > 0;
 
   const gridItems = useMemo(() => images.slice(0, 12), [images]);
 
   return (
     <section className="mt-16 md:mt-20" aria-labelledby="poster-examples-title">
-      <p className="text-xs uppercase tracking-[0.28em] text-stone-500">Inspiration gallery</p>
+      <p className="text-xs uppercase tracking-[0.28em] text-stone-500">Examples gallery</p>
       <h2 id="poster-examples-title" className="mt-4 text-3xl font-semibold tracking-tight text-stone-900 md:text-4xl">
-        Explore premium poster inspirations
+        See what your song could become
       </h2>
       <p className="mt-4 max-w-2xl text-stone-600">
-        Tap any example to open an immersive fullscreen view and study every detail.
+        Open any poster and feel it full screen—like it already belongs on your wall.
       </p>
 
       {hasImages ? (
@@ -110,10 +122,14 @@ export function PosterExamplesClient({ images }: { images: ExampleImage[] }) {
       )}
 
       {activeImage ? (
-        <div className="fixed inset-0 z-[100] bg-black" role="dialog" aria-modal="true" aria-label="Fullscreen poster preview">
+        <div className="fixed inset-0 z-[100] overflow-hidden bg-black" role="dialog" aria-modal="true" aria-label="Fullscreen poster preview">
           <div
-            className="absolute inset-0 touch-none cursor-grab active:cursor-grabbing"
+            className={`absolute inset-0 touch-none ${isPannable ? "cursor-grab active:cursor-grabbing" : "cursor-default"}`}
             onPointerDown={(event) => {
+              if (!isPannable) {
+                return;
+              }
+
               const startX = event.clientX;
               const startY = event.clientY;
               const origin = { ...offset };
@@ -141,24 +157,30 @@ export function PosterExamplesClient({ images }: { images: ExampleImage[] }) {
             <Image
               src={activeImage.src}
               alt={activeImage.alt}
-              fill
+              width={Math.max(1, Math.round(viewerImageSize.width || 1))}
+              height={Math.max(1, Math.round(viewerImageSize.height || 1))}
               unoptimized
-              className="absolute left-1/2 top-1/2 h-full w-full object-cover"
+              className="absolute left-1/2 top-1/2 max-w-none select-none object-cover"
               sizes="100vw"
-              style={{ transform: `translate(-50%, -50%) translate(${offset.x}px, ${offset.y}px)` }}
+              draggable={false}
+              style={{
+                width: viewerImageSize.width ? `${viewerImageSize.width}px` : "100vw",
+                height: viewerImageSize.height ? `${viewerImageSize.height}px` : "100dvh",
+                transform: `translate(-50%, -50%) translate(${offset.x}px, ${offset.y}px)`,
+              }}
             />
           </div>
 
           <button
             type="button"
             onClick={() => setActiveIndex(null)}
-            className="absolute right-4 top-4 flex h-11 w-11 items-center justify-center rounded-full bg-white/90 text-xl font-semibold text-stone-900 shadow-[0_10px_24px_rgba(0,0,0,0.35)] backdrop-blur"
+            className="absolute right-4 top-[max(1rem,env(safe-area-inset-top))] flex h-11 w-11 items-center justify-center rounded-full bg-white/90 text-xl font-semibold text-stone-900 shadow-[0_10px_24px_rgba(0,0,0,0.35)] backdrop-blur"
             aria-label="Close fullscreen viewer"
           >
             ×
           </button>
 
-          <p className="absolute left-4 top-4 rounded-full bg-black/30 px-3 py-1.5 text-xs font-medium tracking-[0.14em] text-white/90 backdrop-blur-sm">
+          <p className="absolute left-4 top-[max(1rem,env(safe-area-inset-top))] rounded-full bg-white/10 px-3 py-1.5 text-[11px] font-medium tracking-[0.16em] text-white/90 backdrop-blur-sm">
             Made with AZTE.UNO
           </p>
         </div>
