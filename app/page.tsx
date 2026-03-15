@@ -92,25 +92,27 @@ export default function Home() {
             {formatSlides.map((slide, index) => (
               <article
                 key={slide.title}
-                className="w-[84%] shrink-0 snap-start rounded-3xl border border-stone-200 bg-white p-4 shadow-[0_16px_42px_rgba(15,23,42,0.08)] md:w-[44%] lg:w-[31%]"
+                className="w-[80%] shrink-0 snap-start rounded-3xl border border-stone-200 bg-white p-3.5 shadow-[0_16px_42px_rgba(15,23,42,0.08)] md:w-[44%] md:p-4 lg:w-[31%]"
               >
-                <Image
-                  src={slide.image}
-                  alt={slide.imageAlt}
-                  width={840}
-                  height={1080}
-                  className="aspect-[3/4] w-full rounded-2xl bg-stone-100 object-cover"
-                  priority={index === 0}
-                  sizes="(max-width: 768px) 84vw, (max-width: 1024px) 44vw, 31vw"
-                />
-                <div className="mt-3.5 px-0.5">
+                <div className="flex aspect-[3/4] w-full items-center justify-center overflow-hidden rounded-2xl border border-stone-200 bg-stone-100/80 p-2.5 md:p-3">
+                  <Image
+                    src={slide.image}
+                    alt={slide.imageAlt}
+                    width={840}
+                    height={1080}
+                    className="h-full w-full rounded-xl object-contain"
+                    priority={index === 0}
+                    sizes="(max-width: 768px) 80vw, (max-width: 1024px) 44vw, 31vw"
+                  />
+                </div>
+                <div className="mt-3 px-0.5">
                   <h2 className={`${inter.className} text-lg font-semibold tracking-tight text-stone-900`}>
                     {slide.title}
                   </h2>
-                  <p className="mt-1.5 text-sm leading-snug text-stone-600">{slide.description}</p>
+                  <p className="mt-1 text-sm leading-snug text-stone-600">{slide.description}</p>
                   <a
                     href={slide.href}
-                    className="mt-3 inline-flex rounded-full bg-stone-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-stone-700"
+                    className="mt-2.5 inline-flex rounded-full bg-stone-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-stone-700"
                   >
                     {slide.cta}
                   </a>
