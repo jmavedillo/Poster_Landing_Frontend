@@ -94,17 +94,15 @@ export default function Home() {
                 key={slide.title}
                 className="w-[84%] shrink-0 snap-start rounded-3xl border border-stone-200 bg-white p-4 shadow-[0_16px_42px_rgba(15,23,42,0.08)] md:w-[44%] lg:w-[31%]"
               >
-                <div className="overflow-hidden rounded-[1.4rem] border border-stone-200 bg-gradient-to-b from-stone-100 to-stone-50 p-2">
-                  <Image
-                    src={slide.image}
-                    alt={slide.imageAlt}
-                    width={840}
-                    height={1080}
-                    className="aspect-[3/4] w-full rounded-[1.05rem] border border-stone-200 bg-white object-contain"
-                    priority={index === 0}
-                    sizes="(max-width: 768px) 84vw, (max-width: 1024px) 44vw, 31vw"
-                  />
-                </div>
+                <Image
+                  src={slide.image}
+                  alt={slide.imageAlt}
+                  width={840}
+                  height={1080}
+                  className="aspect-[3/4] w-full rounded-2xl bg-stone-100 object-cover"
+                  priority={index === 0}
+                  sizes="(max-width: 768px) 84vw, (max-width: 1024px) 44vw, 31vw"
+                />
                 <div className="mt-3.5 px-0.5">
                   <h2 className={`${inter.className} text-lg font-semibold tracking-tight text-stone-900`}>
                     {slide.title}
