@@ -2,9 +2,9 @@ import Image from "next/image";
 import { Inter } from "next/font/google";
 import { PosterExamples } from "./components/PosterExamples";
 import logo from "./azteuno.png";
-import songPreview from "./examples/song.jpg";
-import momentPreview from "./examples/moment.jpg";
-import mapPreview from "./examples/monaco-poster-1000.jpg";
+import songPreview from "./song.jpg";
+import momentPreview from "./moment.jpg";
+import mapPreview from "./examples/nuevayol-poster-1000.jpg";
 
 const inter = Inter({ subsets: ["latin"] });
 const interSemibold = Inter({ subsets: ["latin"], weight: "600" });
