@@ -24,6 +24,7 @@ export function PosterExamplesClient({ images }: { images: ExampleImage[] }) {
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [bounds, setBounds] = useState<ViewerBounds>({ x: 0, y: 0 });
   const [viewerImageSize, setViewerImageSize] = useState<ViewerImageSize>({ width: 0, height: 0 });
+  const [isMobileViewer, setIsMobileViewer] = useState(false);
 
   const activeImage = activeIndex !== null ? images[activeIndex] : null;
 
@@ -41,6 +42,21 @@ export function PosterExamplesClient({ images }: { images: ExampleImage[] }) {
   }, [activeIndex]);
 
   useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 767px)");
+
+    const updateViewerMode = () => {
+      setIsMobileViewer(mediaQuery.matches);
+    };
+
+    updateViewerMode();
+    mediaQuery.addEventListener("change", updateViewerMode);
+
+    return () => {
+      mediaQuery.removeEventListener("change", updateViewerMode);
+    };
+  }, []);
+
+  useEffect(() => {
     if (!activeImage) {
       return;
     }
@@ -50,7 +66,9 @@ export function PosterExamplesClient({ images }: { images: ExampleImage[] }) {
     img.onload = () => {
       const vw = window.innerWidth;
       const vh = window.innerHeight;
-      const ratio = Math.max(vw / img.naturalWidth, vh / img.naturalHeight);
+      const ratio = isMobileViewer
+        ? Math.max(vw / img.naturalWidth, vh / img.naturalHeight)
+        : Math.min((vw * 0.9) / img.naturalWidth, (vh * 0.9) / img.naturalHeight, 1);
       const renderedWidth = img.naturalWidth * ratio;
       const renderedHeight = img.naturalHeight * ratio;
 
@@ -60,12 +78,12 @@ export function PosterExamplesClient({ images }: { images: ExampleImage[] }) {
       });
 
       setBounds({
-        x: Math.max(0, (renderedWidth - vw) / 2),
-        y: Math.max(0, (renderedHeight - vh) / 2),
+        x: isMobileViewer ? Math.max(0, (renderedWidth - vw) / 2) : 0,
+        y: isMobileViewer ? Math.max(0, (renderedHeight - vh) / 2) : 0,
       });
       setOffset({ x: 0, y: 0 });
     };
-  }, [activeImage]);
+  }, [activeImage, isMobileViewer]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -79,7 +97,7 @@ export function PosterExamplesClient({ images }: { images: ExampleImage[] }) {
   }, []);
 
   const hasImages = images.length > 0;
-  const isPannable = bounds.x > 0 || bounds.y > 0;
+  const isPannable = isMobileViewer && (bounds.x > 0 || bounds.y > 0);
 
   const gridItems = useMemo(() => images.slice(0, 12), [images]);
 
@@ -122,54 +140,80 @@ export function PosterExamplesClient({ images }: { images: ExampleImage[] }) {
       )}
 
       {activeImage ? (
-        <div className="fixed inset-0 z-[100] overflow-hidden bg-black" role="dialog" aria-modal="true" aria-label="Fullscreen poster preview">
-          <div
-            className={`absolute inset-0 touch-none ${isPannable ? "cursor-grab active:cursor-grabbing" : "cursor-default"}`}
-            onPointerDown={(event) => {
-              if (!isPannable) {
-                return;
-              }
+        <div
+          className="fixed inset-0 z-[100] overflow-hidden bg-black/95"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Fullscreen poster preview"
+        >
+          {isMobileViewer ? (
+            <div
+              className={`absolute inset-0 touch-none ${isPannable ? "cursor-grab active:cursor-grabbing" : "cursor-default"}`}
+              onPointerDown={(event) => {
+                if (!isPannable) {
+                  return;
+                }
 
-              const startX = event.clientX;
-              const startY = event.clientY;
-              const origin = { ...offset };
-              (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
+                const startX = event.clientX;
+                const startY = event.clientY;
+                const origin = { ...offset };
+                (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
 
-              const onMove = (moveEvent: PointerEvent) => {
-                const nextX = origin.x + moveEvent.clientX - startX;
-                const nextY = origin.y + moveEvent.clientY - startY;
+                const onMove = (moveEvent: PointerEvent) => {
+                  const nextX = origin.x + moveEvent.clientX - startX;
+                  const nextY = origin.y + moveEvent.clientY - startY;
 
-                setOffset({
-                  x: Math.min(bounds.x, Math.max(-bounds.x, nextX)),
-                  y: Math.min(bounds.y, Math.max(-bounds.y, nextY)),
-                });
-              };
+                  setOffset({
+                    x: Math.min(bounds.x, Math.max(-bounds.x, nextX)),
+                    y: Math.min(bounds.y, Math.max(-bounds.y, nextY)),
+                  });
+                };
 
-              const onUp = () => {
-                window.removeEventListener("pointermove", onMove);
-                window.removeEventListener("pointerup", onUp);
-              };
+                const onUp = () => {
+                  window.removeEventListener("pointermove", onMove);
+                  window.removeEventListener("pointerup", onUp);
+                };
 
-              window.addEventListener("pointermove", onMove);
-              window.addEventListener("pointerup", onUp);
-            }}
-          >
-            <Image
-              src={activeImage.src}
-              alt={activeImage.alt}
-              width={Math.max(1, Math.round(viewerImageSize.width || 1))}
-              height={Math.max(1, Math.round(viewerImageSize.height || 1))}
-              unoptimized
-              className="absolute left-1/2 top-1/2 max-w-none select-none object-cover"
-              sizes="100vw"
-              draggable={false}
-              style={{
-                width: viewerImageSize.width ? `${viewerImageSize.width}px` : "100vw",
-                height: viewerImageSize.height ? `${viewerImageSize.height}px` : "100dvh",
-                transform: `translate(-50%, -50%) translate(${offset.x}px, ${offset.y}px)`,
+                window.addEventListener("pointermove", onMove);
+                window.addEventListener("pointerup", onUp);
               }}
-            />
-          </div>
+            >
+              <Image
+                src={activeImage.src}
+                alt={activeImage.alt}
+                width={Math.max(1, Math.round(viewerImageSize.width || 1))}
+                height={Math.max(1, Math.round(viewerImageSize.height || 1))}
+                unoptimized
+                className="absolute left-1/2 top-1/2 max-w-none select-none object-cover"
+                sizes="100vw"
+                draggable={false}
+                style={{
+                  width: viewerImageSize.width ? `${viewerImageSize.width}px` : "100vw",
+                  height: viewerImageSize.height ? `${viewerImageSize.height}px` : "100dvh",
+                  transform: `translate(-50%, -50%) translate(${offset.x}px, ${offset.y}px)`,
+                }}
+              />
+            </div>
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center px-10 py-14 md:px-14">
+              <div className="flex max-h-full max-w-full items-center justify-center rounded-2xl bg-stone-950/80 p-2 shadow-[0_30px_80px_rgba(0,0,0,0.65)]">
+                <Image
+                  src={activeImage.src}
+                  alt={activeImage.alt}
+                  width={Math.max(1, Math.round(viewerImageSize.width || 1))}
+                  height={Math.max(1, Math.round(viewerImageSize.height || 1))}
+                  unoptimized
+                  className="h-auto max-h-[90dvh] w-auto max-w-[90vw] select-none rounded-xl object-contain"
+                  sizes="90vw"
+                  draggable={false}
+                  style={{
+                    width: viewerImageSize.width ? `${viewerImageSize.width}px` : "auto",
+                    height: viewerImageSize.height ? `${viewerImageSize.height}px` : "auto",
+                  }}
+                />
+              </div>
+            </div>
+          )}
 
           <button
             type="button"
