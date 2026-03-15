@@ -12,7 +12,7 @@ const interSemibold = Inter({ subsets: ["latin"], weight: "600" });
 const formatSlides = [
   {
     title: "Favorite Song",
-    description: "Transform the track you love into a polished visual in seconds.",
+    description: "Turn a song into a refined poster-style visual.",
     href: "/create",
     cta: "Create Song Visual",
     image: songPreview,
@@ -20,7 +20,7 @@ const formatSlides = [
   },
   {
     title: "Special Moment",
-    description: "Capture a memory with elegant details and a share-ready style.",
+    description: "Frame a memory with elegant typography and balance.",
     href: "/create-2",
     cta: "Create Moment Visual",
     image: momentPreview,
@@ -28,7 +28,7 @@ const formatSlides = [
   },
   {
     title: "Map Message",
-    description: "Pin a place and turn it into a meaningful poster to share.",
+    description: "Highlight a meaningful place in a clean print-ready layout.",
     href: "/create-3",
     cta: "Create Map Visual",
     image: mapPreview,
@@ -94,25 +94,25 @@ export default function Home() {
                 key={slide.title}
                 className="w-[84%] shrink-0 snap-start rounded-3xl border border-stone-200 bg-white p-4 shadow-[0_16px_42px_rgba(15,23,42,0.08)] md:w-[44%] lg:w-[31%]"
               >
-                <div className="overflow-hidden rounded-2xl border border-stone-200 bg-stone-100">
+                <div className="overflow-hidden rounded-[1.4rem] border border-stone-200 bg-gradient-to-b from-stone-100 to-stone-50 p-2">
                   <Image
                     src={slide.image}
                     alt={slide.imageAlt}
                     width={840}
                     height={1080}
-                    className="h-56 w-full object-cover"
+                    className="aspect-[3/4] w-full rounded-[1.05rem] border border-stone-200 bg-white object-contain"
                     priority={index === 0}
                     sizes="(max-width: 768px) 84vw, (max-width: 1024px) 44vw, 31vw"
                   />
                 </div>
-                <div className="mt-4">
-                  <h2 className={`${inter.className} text-xl font-semibold tracking-tight text-stone-900`}>
+                <div className="mt-3.5 px-0.5">
+                  <h2 className={`${inter.className} text-lg font-semibold tracking-tight text-stone-900`}>
                     {slide.title}
                   </h2>
-                  <p className="mt-2 text-sm leading-relaxed text-stone-600">{slide.description}</p>
+                  <p className="mt-1.5 text-sm leading-snug text-stone-600">{slide.description}</p>
                   <a
                     href={slide.href}
-                    className="mt-4 inline-flex rounded-full bg-stone-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-stone-700"
+                    className="mt-3 inline-flex rounded-full bg-stone-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-stone-700"
                   >
                     {slide.cta}
                   </a>
