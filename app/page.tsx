@@ -1,19 +1,49 @@
 import Image from "next/image";
 import { Inter } from "next/font/google";
 import { PosterExamples } from "./components/PosterExamples";
-import songPreview from "./examples/song.jpg";
-import momentPreview from "./examples/moment.jpg";
+import logo from "./azteuno.png";
+import songPreview from "./song.jpg";
+import momentPreview from "./moment.jpg";
+import mapPreview from "./examples/nuevayol-poster-1000.jpg";
 
 const inter = Inter({ subsets: ["latin"] });
+const interSemibold = Inter({ subsets: ["latin"], weight: "600" });
+
+const formatSlides = [
+  {
+    title: "Special Moment",
+    description: "Turn a memory into a shareable visual.",
+    href: "/create-2",
+    cta: "Create moment visual",
+    image: momentPreview,
+    imageAlt: "Special Moment format preview",
+  },
+  {
+    title: "Map Message",
+    description: "Turn a place into a meaningful visual.",
+    href: "/create-3",
+    cta: "Create map visual",
+    image: mapPreview,
+    imageAlt: "Map Message format preview",
+  },
+  {
+    title: "Favorite Song",
+    description: "Turn a song into a refined visual.",
+    href: "/create",
+    cta: "Create song visual",
+    image: songPreview,
+    imageAlt: "Favorite Song format preview",
+  },
+];
 
 const featureCards = [
   {
     title: "Search any song",
     description:
-      "Find a track in seconds and pull in the details you need to begin a polished poster layout.",
+      "Find a track in seconds and pull in the details you need to begin a polished visual layout.",
   },
   {
-    title: "Generate a refined poster",
+    title: "Generate a refined visual",
     description:
       "Create an elegant composition with balanced typography and artwork that feels gallery-ready.",
   },
@@ -26,7 +56,7 @@ const featureCards = [
 
 const faqs = [
   {
-    q: "Can I create posters without design experience?",
+    q: "Can I create visuals without design experience?",
     a: "Yes. The app handles layout and style automatically so you can focus on the song and mood.",
   },
   {
@@ -42,76 +72,58 @@ const faqs = [
 export default function Home() {
   return (
     <main className="min-h-screen bg-stone-50 text-stone-900">
-      <div className="mx-auto max-w-6xl px-6 py-8 md:px-8 md:py-10">
-        <header className="rounded-full border border-stone-200 bg-white/90 px-6 py-3">
-          <p className={`${inter.className} text-2xl tracking-tight`}>
-            <span className="font-bold text-[#111]">AZTE</span>
-            <span className="text-4xl font-black leading-none text-[#FF6B57]">.</span>
-            <span className="font-light text-[#FF8A78]">UNO</span>
+      <div className="mx-auto max-w-6xl px-4 py-8 md:px-8 md:py-10">
+        <header className="mx-auto max-w-md py-2 text-center md:py-4">
+          <Image
+            src={logo}
+            alt="Azteuno"
+            className="mx-auto h-auto w-52 md:w-64"
+            priority
+          />
+          <p
+            className={`${interSemibold.className} mt-5 text-base leading-tight tracking-tight text-stone-950 sm:text-lg md:mt-6 md:whitespace-nowrap`}
+          >
+            Songs, moments, places. Made <span className="text-[#FF6B57]">visual</span>.
           </p>
         </header>
 
-        <section className="mt-20 rounded-3xl border border-stone-200 bg-white px-8 py-14 md:px-14 md:py-20">
-          <div className="grid items-center gap-12 lg:grid-cols-[1fr_360px]">
-            <div>
-              <p className="text-xs uppercase tracking-[0.28em] text-stone-500">Music Poster Generator</p>
-              <h1 className="mt-5 max-w-4xl text-4xl font-semibold leading-tight tracking-tight text-stone-900 md:text-6xl">
-                Turn any song into an elegant poster.
-              </h1>
-              <p className="mt-6 max-w-2xl text-lg leading-relaxed text-stone-600">
-                Create beautifully composed music posters in moments—minimal, refined, and ready to share or print.
-              </p>
-              <div className="mt-10 flex flex-wrap gap-4">
-                <a
-                  href="/create"
-                  className="rounded-full bg-stone-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-stone-700"
-                >
-                  Your Favorite Song
-                </a>
-                <a
-                  href="/create-2"
-                  className="rounded-full border border-stone-300 bg-white px-6 py-3 text-sm font-semibold text-stone-700 transition hover:bg-stone-100"
-                >
-                  Your Special Moment
-                </a>
-                <a
-                  href="/create-3"
-                  className="rounded-full border border-stone-300 bg-white px-6 py-3 text-sm font-semibold text-stone-700 transition hover:bg-stone-100"
-                >
-                  Your Map Message
-                </a>
-                <a
-                  href="#how-it-works"
-                  className="rounded-full border border-stone-300 bg-white px-6 py-3 text-sm font-semibold text-stone-700 transition hover:bg-stone-100"
-                >
-                  Explore features
-                </a>
-              </div>
-            </div>
-
-            <div className="hidden lg:block">
-              <div className="overflow-hidden rounded-2xl border border-stone-200 bg-white p-3 shadow-[0_14px_36px_rgba(15,23,42,0.07)]">
-                <div className="hero-carousel">
+        <section className="mt-5 md:mt-7">
+          <div className="mobile-carousel flex snap-x snap-mandatory gap-4 overflow-x-auto pb-4 pl-1 pr-8">
+            {formatSlides.map((slide, index) => (
+              <article
+                key={slide.title}
+                className="flex w-[80%] shrink-0 snap-start flex-col rounded-3xl border border-stone-200 bg-white p-3.5 shadow-[0_16px_42px_rgba(15,23,42,0.08)] md:w-[44%] md:p-4 lg:w-[31%]"
+              >
+                <div className="flex aspect-[3/4] w-full items-center justify-center overflow-hidden rounded-2xl border border-stone-200 bg-stone-100/80 p-2.5 md:p-3">
                   <Image
-                    src={songPreview}
-                    alt="Your Favorite Song poster preview"
+                    src={slide.image}
+                    alt={slide.imageAlt}
                     width={840}
                     height={1080}
-                    className="hero-frame-image hero-slide-primary rounded-xl"
-                    sizes="360px"
-                    priority
-                  />
-                  <Image
-                    src={momentPreview}
-                    alt="Your Special Moment poster preview"
-                    width={840}
-                    height={1080}
-                    className="hero-slide-overlay hero-slide-secondary rounded-xl"
-                    sizes="360px"
+                    className="h-full w-full rounded-xl object-contain"
+                    priority={index === 0}
+                    sizes="(max-width: 768px) 80vw, (max-width: 1024px) 44vw, 31vw"
                   />
                 </div>
-              </div>
-            </div>
+                <div className="mt-3 flex flex-1 flex-col px-0.5">
+                  <h2 className={`${inter.className} text-lg font-semibold tracking-tight text-stone-900`}>
+                    {slide.title}
+                  </h2>
+                  <p className="mt-1 text-sm leading-snug text-stone-600 md:min-h-[2.75rem]">{slide.description}</p>
+                  <a
+                    href={slide.href}
+                    className="mt-2.5 inline-flex w-fit rounded-full bg-stone-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-stone-700 md:mt-auto"
+                  >
+                    {slide.cta}
+                  </a>
+                </div>
+              </article>
+            ))}
+          </div>
+          <div className="mt-2 flex justify-center gap-2 md:mt-3">
+            {formatSlides.map((slide) => (
+              <span key={slide.title} className="h-1.5 w-6 rounded-full bg-stone-300" aria-hidden="true" />
+            ))}
           </div>
         </section>
 
@@ -119,7 +131,7 @@ export default function Home() {
 
         <section id="how-it-works" className="mt-20">
           <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
-            <h2 className="text-3xl font-semibold tracking-tight text-stone-900">Everything you need to make a poster.</h2>
+            <h2 className="text-3xl font-semibold tracking-tight text-stone-900">Everything you need to make a visual.</h2>
             <p className="max-w-xl text-stone-600">
               A simple flow designed for music lovers who want striking, print-worthy artwork without complexity.
             </p>
@@ -149,7 +161,7 @@ export default function Home() {
 
         <footer className="mt-16 border-t border-stone-200 py-10">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <p className="text-sm text-stone-500">Create a timeless poster from the songs you love.</p>
+            <p className="text-sm text-stone-500">Create a timeless visual from the songs you love.</p>
             <div className="flex flex-wrap gap-3">
               <a
                 href="/create"
