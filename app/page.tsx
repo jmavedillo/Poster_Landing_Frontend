@@ -7,6 +7,7 @@ import momentPreview from "./examples/moment.jpg";
 import mapPreview from "./examples/monaco-poster-1000.jpg";
 
 const inter = Inter({ subsets: ["latin"] });
+const interSemibold = Inter({ subsets: ["latin"], weight: "600" });
 
 const formatSlides = [
   {
@@ -79,8 +80,10 @@ export default function Home() {
             className="mx-auto h-auto w-52 md:w-64"
             priority
           />
-          <p className="mt-8 text-balance text-lg leading-relaxed text-stone-600 md:text-xl">
-            Turn songs, moments and places into visuals worth sharing.
+          <p
+            className={`${interSemibold.className} mt-8 text-base leading-tight tracking-tight text-stone-950 sm:text-lg md:whitespace-nowrap`}
+          >
+            Songs, moments, places. Made <span className="text-[#FF6B57]">visual</span>.
           </p>
         </header>
 
