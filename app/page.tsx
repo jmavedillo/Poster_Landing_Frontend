@@ -6,11 +6,6 @@ import momentPreview from "./examples/moment.jpg";
 
 const inter = Inter({ subsets: ["latin"] });
 
-const navItems = [
-  { label: "How it Works", href: "#how-it-works" },
-  { label: "FAQ", href: "#faq" },
-];
-
 const featureCards = [
   {
     title: "Search any song",
@@ -48,33 +43,12 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-stone-50 text-stone-900">
       <div className="mx-auto max-w-6xl px-6 py-8 md:px-8 md:py-10">
-        <header className="flex items-center justify-between rounded-full border border-stone-200 bg-white/90 px-6 py-3">
+        <header className="rounded-full border border-stone-200 bg-white/90 px-6 py-3">
           <p className={`${inter.className} text-2xl tracking-tight`}>
             <span className="font-bold text-[#111]">AZTE</span>
             <span className="text-4xl font-black leading-none text-[#FF6B57]">.</span>
             <span className="font-light text-[#FF8A78]">UNO</span>
           </p>
-          <nav className="hidden gap-8 text-sm text-stone-600 md:flex">
-            {navItems.map((item) => (
-              <a key={item.label} href={item.href} className="transition hover:text-stone-900">
-                {item.label}
-              </a>
-            ))}
-          </nav>
-          <div className="flex items-center gap-2">
-            <a
-              href="/create"
-              className="rounded-full border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-800 transition hover:bg-stone-100"
-            >
-              Your Favorite Song
-            </a>
-            <a
-              href="/create-2"
-              className="rounded-full border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-800 transition hover:bg-stone-100"
-            >
-              Your Special Moment
-            </a>
-          </div>
         </header>
 
         <section className="mt-20 rounded-3xl border border-stone-200 bg-white px-8 py-14 md:px-14 md:py-20">
@@ -99,6 +73,12 @@ export default function Home() {
                   className="rounded-full border border-stone-300 bg-white px-6 py-3 text-sm font-semibold text-stone-700 transition hover:bg-stone-100"
                 >
                   Your Special Moment
+                </a>
+                <a
+                  href="/create-3"
+                  className="rounded-full border border-stone-300 bg-white px-6 py-3 text-sm font-semibold text-stone-700 transition hover:bg-stone-100"
+                >
+                  Your Map Message
                 </a>
                 <a
                   href="#how-it-works"
@@ -182,6 +162,12 @@ export default function Home() {
                 className="inline-flex w-fit rounded-full border border-stone-300 bg-white px-5 py-2 text-sm font-semibold text-stone-800 transition hover:bg-stone-100"
               >
                 Your Special Moment
+              </a>
+              <a
+                href="/create-3"
+                className="inline-flex w-fit rounded-full border border-stone-300 bg-white px-5 py-2 text-sm font-semibold text-stone-800 transition hover:bg-stone-100"
+              >
+                Your Map Message
               </a>
             </div>
           </div>
