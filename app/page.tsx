@@ -11,28 +11,28 @@ const interSemibold = Inter({ subsets: ["latin"], weight: "600" });
 
 const formatSlides = [
   {
-    title: "Favorite Song",
-    description: "Turn a song into a refined poster visual with balanced typography.",
-    href: "/create",
-    cta: "Create Song Visual",
-    image: songPreview,
-    imageAlt: "Favorite Song format preview",
-  },
-  {
     title: "Special Moment",
-    description: "Frame a memory in an elegant composition designed for meaningful moments.",
+    description: "Turn a memory into a shareable visual.",
     href: "/create-2",
-    cta: "Create Moment Visual",
+    cta: "Create moment visual",
     image: momentPreview,
     imageAlt: "Special Moment format preview",
   },
   {
     title: "Map Message",
-    description: "Highlight a meaningful place in a clean layout made to print beautifully.",
+    description: "Turn a place into a meaningful visual.",
     href: "/create-3",
-    cta: "Create Map Visual",
+    cta: "Create map visual",
     image: mapPreview,
     imageAlt: "Map Message format preview",
+  },
+  {
+    title: "Favorite Song",
+    description: "Turn a song into a refined visual.",
+    href: "/create",
+    cta: "Create song visual",
+    image: songPreview,
+    imageAlt: "Favorite Song format preview",
   },
 ];
 
@@ -40,10 +40,10 @@ const featureCards = [
   {
     title: "Search any song",
     description:
-      "Find a track in seconds and pull in the details you need to begin a polished poster layout.",
+      "Find a track in seconds and pull in the details you need to begin a polished visual layout.",
   },
   {
-    title: "Generate a refined poster",
+    title: "Generate a refined visual",
     description:
       "Create an elegant composition with balanced typography and artwork that feels gallery-ready.",
   },
@@ -56,7 +56,7 @@ const featureCards = [
 
 const faqs = [
   {
-    q: "Can I create posters without design experience?",
+    q: "Can I create visuals without design experience?",
     a: "Yes. The app handles layout and style automatically so you can focus on the song and mood.",
   },
   {
@@ -131,7 +131,7 @@ export default function Home() {
 
         <section id="how-it-works" className="mt-20">
           <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
-            <h2 className="text-3xl font-semibold tracking-tight text-stone-900">Everything you need to make a poster.</h2>
+            <h2 className="text-3xl font-semibold tracking-tight text-stone-900">Everything you need to make a visual.</h2>
             <p className="max-w-xl text-stone-600">
               A simple flow designed for music lovers who want striking, print-worthy artwork without complexity.
             </p>
@@ -161,7 +161,7 @@ export default function Home() {
 
         <footer className="mt-16 border-t border-stone-200 py-10">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <p className="text-sm text-stone-500">Create a timeless poster from the songs you love.</p>
+            <p className="text-sm text-stone-500">Create a timeless visual from the songs you love.</p>
             <div className="flex flex-wrap gap-3">
               <a
                 href="/create"

@@ -3,7 +3,7 @@
 import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Inter } from "next/font/google";
+import logo from "../azteuno.png";
 import "./legacyPoster.css";
 import { buildPosterRenderRequest, PosterRenderRequest, PosterTemplateId, PosterTheme } from "./posterModel";
 
@@ -35,7 +35,6 @@ type CreatePosterClientProps = {
   requiresPhotoUpload?: boolean;
 };
 
-const inter = Inter({ subsets: ["latin"] });
 
 const defaults = {
   title: "Viajo Sin Ver (Remix) [feat De La...]",
@@ -478,12 +477,12 @@ export function CreatePosterClient({ templateId, pageTitle, pageDescription, req
     if (isGenerating) return;
 
     if (!selectedTrack) {
-      setSearchError("Please select a song to generate this poster");
+      setSearchError("Please select a song to generate this visual");
       return;
     }
 
     if (requiresPhotoUpload && !uploadedPhotoUrl) {
-      setSearchError("Please upload a photo successfully before generating this poster");
+      setSearchError("Please upload a photo successfully before generating this visual");
       return;
     }
 
@@ -605,7 +604,7 @@ export function CreatePosterClient({ templateId, pageTitle, pageDescription, req
       const { blob, fileName, file } = await getCachedPosterImage();
       const sharePayload: ShareData = {
         files: [file],
-        title: "Soundframe poster",
+        title: "Soundframe visual",
         ...(includeSong ? { text: `Listen to the song: ${selectedTrack?.spotifyUrl ?? ""}` } : {}),
       };
 
@@ -644,10 +643,8 @@ export function CreatePosterClient({ templateId, pageTitle, pageDescription, req
     <main className="min-h-screen bg-stone-50 text-stone-900">
       <div className="mx-auto max-w-6xl px-6 py-8 md:px-8 md:py-10">
         <header className="flex items-center justify-between rounded-full border border-stone-200 bg-white/90 px-6 py-3">
-          <Link href="/" className={`${inter.className} text-xl tracking-tight`}>
-            <span className="font-bold text-[#111]">AZTE</span>
-            <span className="text-[#FF6B57]">.</span>
-            <span className="font-light text-[#777]">UNO</span>
+          <Link href="/" aria-label="Azteuno home" className="inline-flex items-center">
+            <Image src={logo} alt="Azteuno" className="h-auto w-36 md:w-40" priority />
           </Link>
           <Link
             href="/"
@@ -729,7 +726,7 @@ export function CreatePosterClient({ templateId, pageTitle, pageDescription, req
                 className="flex w-full items-center justify-center rounded-full bg-stone-900 px-6 py-3 text-sm font-semibold text-white"
                 disabled={isGenerating || isUploadingPhoto}
               >
-                {isGenerating ? "Rendering..." : "Generate poster"}
+                {isGenerating ? "Rendering..." : "Generate visual"}
               </button>
             </form>
           </div>
@@ -740,15 +737,11 @@ export function CreatePosterClient({ templateId, pageTitle, pageDescription, req
                 <div className="legacy-poster-shell">
                   {previewHtml ? (
                     <div className="legacy-poster-preview-viewport">
-                      <iframe title="Poster preview" srcDoc={previewHtml} className="legacy-poster-preview-frame" />
+                      <iframe title="Visual preview" srcDoc={previewHtml} className="legacy-poster-preview-frame" />
                     </div>
                   ) : (
-                    <div className="legacy-poster-preview-empty" aria-label="Poster preview placeholder">
-                      <p className={`${inter.className} legacy-poster-preview-brand`}>
-                        <span className="font-bold text-[#111]">AZTE</span>
-                        <span className="text-[#FF6B57]">.</span>
-                        <span className="font-light text-[#777]">UNO</span>
-                      </p>
+                    <div className="legacy-poster-preview-empty" aria-label="Visual preview placeholder">
+                      <Image src={logo} alt="Azteuno" className="h-auto w-36" priority />
                     </div>
                   )}
                 </div>
@@ -786,13 +779,13 @@ export function CreatePosterClient({ templateId, pageTitle, pageDescription, req
                 {requiresPhotoUpload ? (
                   <>
                     <p className="mt-3 leading-relaxed">
-                      Uploaded photos are compressed in your browser and then temporarily hosted to render your poster.
+                      Uploaded photos are compressed in your browser and then temporarily hosted to render your visual.
                     </p>
                     <p className="mt-3 leading-relaxed">
                       The temporary URL may be publicly accessible for a short time and expires after about 60 seconds.
                     </p>
                     <p className="mt-3 leading-relaxed">
-                      Download your poster promptly. Use this service under your own responsibility.
+                      Download your visual promptly. Use this service under your own responsibility.
                     </p>
                   </>
                 ) : (

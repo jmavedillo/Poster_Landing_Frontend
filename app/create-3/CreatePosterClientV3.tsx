@@ -3,7 +3,7 @@
 import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Inter } from "next/font/google";
+import logo from "../azteuno.png";
 import "../create/legacyPoster.css";
 import { buildMapMessageRenderRequest, MapMessageRenderRequest } from "./posterModelV3";
 
@@ -55,12 +55,11 @@ type MapShareMetadata = {
 type MapMessageStyleVariant = "style1" | "style2" | "style3";
 
 const MAP_MESSAGE_STYLE_OPTIONS: Array<{ value: MapMessageStyleVariant; label: string }> = [
-  { value: "style1", label: "BNR" },
-  { value: "style2", label: "style2" },
-  { value: "style3", label: "style3" },
+  { value: "style1", label: "White" },
+  { value: "style2", label: "Navy" },
+  { value: "style3", label: "Green" },
 ];
 
-const inter = Inter({ subsets: ["latin"] });
 
 const MIN_QUERY_LENGTH = 3;
 const DEBOUNCE_MS = 300;
@@ -648,12 +647,12 @@ export function CreatePosterClientV3() {
     if (isGenerating) return;
 
     if (!trimmedLocationQuery) {
-      setFormError("Please enter a location to generate this poster");
+      setFormError("Please enter a location to generate this visual");
       return;
     }
 
     if (!selectedTrack) {
-      setFormError("Please select a song to generate this poster");
+      setFormError("Please select a song to generate this visual");
       return;
     }
 
@@ -731,7 +730,7 @@ export function CreatePosterClientV3() {
       const { blob, fileName, file } = await getCachedPosterImage();
       const sharePayload: ShareData = {
         files: [file],
-        title: "Soundframe poster",
+        title: "Soundframe visual",
         ...(includeLinks && linkShareText ? { text: linkShareText } : {}),
       };
 
@@ -770,10 +769,8 @@ export function CreatePosterClientV3() {
     <main className="min-h-screen bg-stone-50 text-stone-900">
       <div className="mx-auto max-w-6xl px-6 py-8 md:px-8 md:py-10">
         <header className="flex items-center justify-between rounded-full border border-stone-200 bg-white/90 px-6 py-3">
-          <Link href="/" className={`${inter.className} text-xl tracking-tight`}>
-            <span className="font-bold text-[#111]">AZTE</span>
-            <span className="text-[#FF6B57]">.</span>
-            <span className="font-light text-[#777]">UNO</span>
+          <Link href="/" aria-label="Azteuno home" className="inline-flex items-center">
+            <Image src={logo} alt="Azteuno" className="h-auto w-36 md:w-40" priority />
           </Link>
           <Link
             href="/"
@@ -785,8 +782,8 @@ export function CreatePosterClientV3() {
 
         <section className="mt-10 grid gap-8 lg:grid-cols-[360px_1fr]">
           <div className="rounded-3xl border border-stone-200 bg-white p-6">
-            <h1 className="text-3xl font-semibold tracking-tight">Create your poster</h1>
-            <p className="mt-2 text-sm text-stone-600">Set location, song, date, time, and your message to render your map-message composition.</p>
+            <h1 className="text-3xl font-semibold tracking-tight">Create your visual</h1>
+            <p className="mt-2 text-sm text-stone-600">Set location, song, date, time, and your message to render your map-message visual.</p>
 
             <form className="mt-6 space-y-4" onSubmit={handleGeneratePoster}>
               <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-stone-200 bg-stone-50 p-3 text-sm font-medium text-stone-700">
@@ -896,7 +893,7 @@ export function CreatePosterClientV3() {
                 className="flex w-full items-center justify-center rounded-full bg-stone-900 px-6 py-3 text-sm font-semibold text-white"
                 disabled={isGenerating}
               >
-                {isGenerating ? "Rendering..." : "Generate poster"}
+                {isGenerating ? "Rendering..." : "Generate visual"}
               </button>
             </form>
           </div>
@@ -907,15 +904,11 @@ export function CreatePosterClientV3() {
                 <div className="legacy-poster-shell">
                   {previewDocumentUrl ? (
                     <div className="legacy-poster-preview-viewport">
-                      <iframe title="Poster preview" src={previewDocumentUrl} className="legacy-poster-preview-frame" />
+                      <iframe title="Visual preview" src={previewDocumentUrl} className="legacy-poster-preview-frame" />
                     </div>
                   ) : (
-                    <div className="legacy-poster-preview-empty" aria-label="Poster preview placeholder">
-                      <p className={`${inter.className} legacy-poster-preview-brand`}>
-                        <span className="font-bold text-[#111]">AZTE</span>
-                        <span className="text-[#FF6B57]">.</span>
-                        <span className="font-light text-[#777]">UNO</span>
-                      </p>
+                    <div className="legacy-poster-preview-empty" aria-label="Visual preview placeholder">
+                      <Image src={logo} alt="Azteuno" className="h-auto w-36" priority />
                     </div>
                   )}
                 </div>
