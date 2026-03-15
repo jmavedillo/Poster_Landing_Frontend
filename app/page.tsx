@@ -1,10 +1,39 @@
 import Image from "next/image";
 import { Inter } from "next/font/google";
 import { PosterExamples } from "./components/PosterExamples";
+import logo from "./azteuno.png";
 import songPreview from "./examples/song.jpg";
 import momentPreview from "./examples/moment.jpg";
+import mapPreview from "./examples/monaco-poster-1000.jpg";
 
 const inter = Inter({ subsets: ["latin"] });
+
+const formatSlides = [
+  {
+    title: "Favorite Song",
+    description: "Transform the track you love into a polished visual in seconds.",
+    href: "/create",
+    cta: "Create Song Visual",
+    image: songPreview,
+    imageAlt: "Favorite Song format preview",
+  },
+  {
+    title: "Special Moment",
+    description: "Capture a memory with elegant details and a share-ready style.",
+    href: "/create-2",
+    cta: "Create Moment Visual",
+    image: momentPreview,
+    imageAlt: "Special Moment format preview",
+  },
+  {
+    title: "Map Message",
+    description: "Pin a place and turn it into a meaningful poster to share.",
+    href: "/create-3",
+    cta: "Create Map Visual",
+    image: mapPreview,
+    imageAlt: "Map Message format preview",
+  },
+];
 
 const featureCards = [
   {
@@ -42,76 +71,56 @@ const faqs = [
 export default function Home() {
   return (
     <main className="min-h-screen bg-stone-50 text-stone-900">
-      <div className="mx-auto max-w-6xl px-6 py-8 md:px-8 md:py-10">
-        <header className="rounded-full border border-stone-200 bg-white/90 px-6 py-3">
-          <p className={`${inter.className} text-2xl tracking-tight`}>
-            <span className="font-bold text-[#111]">AZTE</span>
-            <span className="text-4xl font-black leading-none text-[#FF6B57]">.</span>
-            <span className="font-light text-[#FF8A78]">UNO</span>
+      <div className="mx-auto max-w-6xl px-4 py-8 md:px-8 md:py-10">
+        <header className="mx-auto max-w-md py-4 text-center md:py-6">
+          <Image
+            src={logo}
+            alt="Azteuno"
+            className="mx-auto h-auto w-52 md:w-64"
+            priority
+          />
+          <p className="mt-8 text-balance text-lg leading-relaxed text-stone-600 md:text-xl">
+            Turn songs, moments and places into visuals worth sharing.
           </p>
         </header>
 
-        <section className="mt-20 rounded-3xl border border-stone-200 bg-white px-8 py-14 md:px-14 md:py-20">
-          <div className="grid items-center gap-12 lg:grid-cols-[1fr_360px]">
-            <div>
-              <p className="text-xs uppercase tracking-[0.28em] text-stone-500">Music Poster Generator</p>
-              <h1 className="mt-5 max-w-4xl text-4xl font-semibold leading-tight tracking-tight text-stone-900 md:text-6xl">
-                Turn any song into an elegant poster.
-              </h1>
-              <p className="mt-6 max-w-2xl text-lg leading-relaxed text-stone-600">
-                Create beautifully composed music posters in moments—minimal, refined, and ready to share or print.
-              </p>
-              <div className="mt-10 flex flex-wrap gap-4">
-                <a
-                  href="/create"
-                  className="rounded-full bg-stone-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-stone-700"
-                >
-                  Your Favorite Song
-                </a>
-                <a
-                  href="/create-2"
-                  className="rounded-full border border-stone-300 bg-white px-6 py-3 text-sm font-semibold text-stone-700 transition hover:bg-stone-100"
-                >
-                  Your Special Moment
-                </a>
-                <a
-                  href="/create-3"
-                  className="rounded-full border border-stone-300 bg-white px-6 py-3 text-sm font-semibold text-stone-700 transition hover:bg-stone-100"
-                >
-                  Your Map Message
-                </a>
-                <a
-                  href="#how-it-works"
-                  className="rounded-full border border-stone-300 bg-white px-6 py-3 text-sm font-semibold text-stone-700 transition hover:bg-stone-100"
-                >
-                  Explore features
-                </a>
-              </div>
-            </div>
-
-            <div className="hidden lg:block">
-              <div className="overflow-hidden rounded-2xl border border-stone-200 bg-white p-3 shadow-[0_14px_36px_rgba(15,23,42,0.07)]">
-                <div className="hero-carousel">
+        <section className="mt-8 md:mt-10">
+          <div className="mobile-carousel flex snap-x snap-mandatory gap-4 overflow-x-auto pb-4 pl-1 pr-8">
+            {formatSlides.map((slide, index) => (
+              <article
+                key={slide.title}
+                className="w-[84%] shrink-0 snap-start rounded-3xl border border-stone-200 bg-white p-4 shadow-[0_16px_42px_rgba(15,23,42,0.08)] md:w-[44%] lg:w-[31%]"
+              >
+                <div className="overflow-hidden rounded-2xl border border-stone-200 bg-stone-100">
                   <Image
-                    src={songPreview}
-                    alt="Your Favorite Song poster preview"
+                    src={slide.image}
+                    alt={slide.imageAlt}
                     width={840}
                     height={1080}
-                    className="hero-frame-image hero-slide-primary rounded-xl"
-                    sizes="360px"
-                    priority
-                  />
-                  <Image
-                    src={momentPreview}
-                    alt="Your Special Moment poster preview"
-                    width={840}
-                    height={1080}
-                    className="hero-slide-overlay hero-slide-secondary rounded-xl"
-                    sizes="360px"
+                    className="h-56 w-full object-cover"
+                    priority={index === 0}
+                    sizes="(max-width: 768px) 84vw, (max-width: 1024px) 44vw, 31vw"
                   />
                 </div>
-              </div>
-            </div>
+                <div className="mt-4">
+                  <h2 className={`${inter.className} text-xl font-semibold tracking-tight text-stone-900`}>
+                    {slide.title}
+                  </h2>
+                  <p className="mt-2 text-sm leading-relaxed text-stone-600">{slide.description}</p>
+                  <a
+                    href={slide.href}
+                    className="mt-4 inline-flex rounded-full bg-stone-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-stone-700"
+                  >
+                    {slide.cta}
+                  </a>
+                </div>
+              </article>
+            ))}
+          </div>
+          <div className="mt-2 flex justify-center gap-2 md:mt-3">
+            {formatSlides.map((slide) => (
+              <span key={slide.title} className="h-1.5 w-6 rounded-full bg-stone-300" aria-hidden="true" />
+            ))}
           </div>
         </section>
 
