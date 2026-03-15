@@ -73,7 +73,7 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-stone-50 text-stone-900">
       <div className="mx-auto max-w-6xl px-4 py-8 md:px-8 md:py-10">
-        <header className="mx-auto max-w-md py-4 text-center md:py-6">
+        <header className="mx-auto max-w-md py-2 text-center md:py-4">
           <Image
             src={logo}
             alt="Azteuno"
@@ -81,13 +81,13 @@ export default function Home() {
             priority
           />
           <p
-            className={`${interSemibold.className} mt-8 text-base leading-tight tracking-tight text-stone-950 sm:text-lg md:whitespace-nowrap`}
+            className={`${interSemibold.className} mt-5 text-base leading-tight tracking-tight text-stone-950 sm:text-lg md:mt-6 md:whitespace-nowrap`}
           >
             Songs, moments, places. Made <span className="text-[#FF6B57]">visual</span>.
           </p>
         </header>
 
-        <section className="mt-8 md:mt-10">
+        <section className="mt-5 md:mt-7">
           <div className="mobile-carousel flex snap-x snap-mandatory gap-4 overflow-x-auto pb-4 pl-1 pr-8">
             {formatSlides.map((slide, index) => (
               <article
