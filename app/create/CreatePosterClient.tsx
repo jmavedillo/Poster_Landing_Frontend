@@ -33,6 +33,7 @@ type CreatePosterClientProps = {
   pageTitle: string;
   pageDescription: string;
   requiresPhotoUpload?: boolean;
+  useFreeTextTrack?: boolean;
 };
 
 
@@ -277,7 +278,7 @@ const uploadImageToImgbb = async (imageBlob: Blob) => {
   return payload.data.url;
 };
 
-export function CreatePosterClient({ templateId, pageTitle, pageDescription, requiresPhotoUpload = false }: CreatePosterClientProps) {
+export function CreatePosterClient({ templateId, pageTitle, pageDescription, requiresPhotoUpload = false, useFreeTextTrack = false }: CreatePosterClientProps) {
   const availableThemes = requiresPhotoUpload ? createTwoThemes : createThemes;
   const defaultTheme = availableThemes[0]?.value ?? "dark";
   const [artistQuery, setArtistQuery] = useState("");
@@ -286,6 +287,9 @@ export function CreatePosterClient({ templateId, pageTitle, pageDescription, req
   const [trackResults, setTrackResults] = useState<Track[]>([]);
   const [selectedArtist, setSelectedArtist] = useState<Artist | null>(null);
   const [selectedTrack, setSelectedTrack] = useState<Track | null>(null);
+  const [freeTextTitle, setFreeTextTitle] = useState("");
+  const [freeTextArtists, setFreeTextArtists] = useState("");
+  const [freeTextTotalTime, setFreeTextTotalTime] = useState(defaults.totalTime);
   const [theme, setTheme] = useState<PosterTheme>(defaultTheme);
   const [showPoster, setShowPoster] = useState(false);
   const [isExporting, setIsExporting] = useState<number | null>(null);
@@ -305,31 +309,52 @@ export function CreatePosterClient({ templateId, pageTitle, pageDescription, req
     setTheme(defaultTheme);
   }, [defaultTheme]);
 
+  const resolvedTrack = useMemo(() => {
+    if (useFreeTextTrack) {
+      const title = freeTextTitle.trim() || defaults.title;
+      const artists = freeTextArtists.trim() || defaults.artists;
+      const safeTotalTime = parseTime(freeTextTotalTime.trim()) === null ? defaults.totalTime : freeTextTotalTime.trim();
+      return {
+        title,
+        artists,
+        totalTime: safeTotalTime,
+        currentTime: getElapsedTime(safeTotalTime),
+        uri: "",
+        spotifyUrl: "",
+      };
+    }
+
+    if (selectedTrack) {
+      const totalTime = formatTime(selectedTrack.durationSeconds);
+      return {
+        title: selectedTrack.title,
+        artists: getTrackArtists(selectedTrack),
+        totalTime,
+        currentTime: getElapsedTime(totalTime),
+        uri: selectedTrack.uri ?? "",
+        spotifyUrl: selectedTrack.spotifyUrl ?? "",
+      };
+    }
+
+    return {
+      title: defaults.title,
+      artists: defaults.artists,
+      totalTime: defaults.totalTime,
+      currentTime: getElapsedTime(defaults.totalTime),
+    };
+  }, [useFreeTextTrack, freeTextTitle, freeTextArtists, freeTextTotalTime, selectedTrack]);
+
   const posterPayload: PosterRenderRequest = useMemo(
     () =>
       buildPosterRenderRequest({
         template: templateId,
-        track: selectedTrack
-          ? {
-              title: selectedTrack.title,
-              artists: getTrackArtists(selectedTrack),
-              totalTime: formatTime(selectedTrack.durationSeconds),
-              currentTime: getElapsedTime(formatTime(selectedTrack.durationSeconds)),
-              uri: selectedTrack.uri ?? "",
-              spotifyUrl: selectedTrack.spotifyUrl ?? "",
-            }
-          : {
-              title: defaults.title,
-              artists: defaults.artists,
-              totalTime: defaults.totalTime,
-              currentTime: getElapsedTime(defaults.totalTime),
-            },
+        track: resolvedTrack,
         artwork: {
           coverUrl: requiresPhotoUpload ? resolveCoverUrl(uploadedPhotoUrl) : resolveCoverUrl(selectedTrack?.coverUrl),
         },
         theme,
       }),
-    [selectedTrack, templateId, theme, requiresPhotoUpload, uploadedPhotoUrl],
+    [resolvedTrack, selectedTrack?.coverUrl, templateId, theme, requiresPhotoUpload, uploadedPhotoUrl],
   );
 
   useEffect(() => {
@@ -342,6 +367,8 @@ export function CreatePosterClient({ templateId, pageTitle, pageDescription, req
   }, [templateId]);
 
   useEffect(() => {
+    if (useFreeTextTrack) return;
+
     const normalizedArtistTerm = normalizeText(artistQuery);
     if (normalizedArtistTerm.length < MIN_QUERY_LENGTH) {
       setArtistResults([]);
@@ -374,9 +401,11 @@ export function CreatePosterClient({ templateId, pageTitle, pageDescription, req
       isCancelled = true;
       window.clearTimeout(timeoutId);
     };
-  }, [artistQuery]);
+  }, [artistQuery, useFreeTextTrack]);
 
   useEffect(() => {
+    if (useFreeTextTrack) return;
+
     const artistChanged = selectedArtist && normalizeText(selectedArtist.name) !== normalizeText(artistQuery);
     if (artistChanged) {
       setSelectedTrack(null);
@@ -426,7 +455,7 @@ export function CreatePosterClient({ templateId, pageTitle, pageDescription, req
       isCancelled = true;
       window.clearTimeout(timeoutId);
     };
-  }, [songQuery, artistQuery, selectedArtist]);
+  }, [songQuery, artistQuery, selectedArtist, useFreeTextTrack]);
 
 
   const handlePhotoUpload = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -476,7 +505,17 @@ export function CreatePosterClient({ templateId, pageTitle, pageDescription, req
     event.preventDefault();
     if (isGenerating) return;
 
-    if (!selectedTrack) {
+    if (useFreeTextTrack) {
+      if (!freeTextTitle.trim() || !freeTextArtists.trim()) {
+        setSearchError("Please add a title and artist to generate this visual");
+        return;
+      }
+
+      if (parseTime(freeTextTotalTime.trim()) === null) {
+        setSearchError("Please use MM:SS format for total time (example 3:45)");
+        return;
+      }
+    } else if (!selectedTrack) {
       setSearchError("Please select a song to generate this visual");
       return;
     }
@@ -660,25 +699,64 @@ export function CreatePosterClient({ templateId, pageTitle, pageDescription, req
             <p className="mt-2 text-sm text-stone-600">{pageDescription}</p>
 
             <form className="mt-6 space-y-4" onSubmit={handleGeneratePoster}>
-              <label className="block text-sm font-semibold text-stone-700">
-                Search by artist
-                <input type="search" value={artistQuery} onChange={(e) => setArtistQuery(e.target.value)} className="mt-2 w-full rounded-xl border border-stone-300 px-3 py-2" list="artists" />
-              </label>
-              <datalist id="artists">
-                {artistResults.map((artist) => (
-                  <option key={artist.id} value={artist.name} />
-                ))}
-              </datalist>
+              {useFreeTextTrack ? (
+                <>
+                  <label className="block text-sm font-semibold text-stone-700">
+                    Song title
+                    <input
+                      type="text"
+                      value={freeTextTitle}
+                      onChange={(e) => setFreeTextTitle(e.target.value)}
+                      className="mt-2 w-full rounded-xl border border-stone-300 px-3 py-2"
+                      placeholder="Type the song title"
+                    />
+                  </label>
 
-              <label className="block text-sm font-semibold text-stone-700">
-                Search by song
-                <input type="search" value={songQuery} onChange={(e) => setSongQuery(e.target.value)} className="mt-2 w-full rounded-xl border border-stone-300 px-3 py-2" list="tracks" />
-              </label>
-              <datalist id="tracks">
-                {trackResults.map((track) => (
-                  <option key={track.id} value={`${track.title} — ${getTrackArtists(track)}`} />
-                ))}
-              </datalist>
+                  <label className="block text-sm font-semibold text-stone-700">
+                    Artist name
+                    <input
+                      type="text"
+                      value={freeTextArtists}
+                      onChange={(e) => setFreeTextArtists(e.target.value)}
+                      className="mt-2 w-full rounded-xl border border-stone-300 px-3 py-2"
+                      placeholder="Type artist name"
+                    />
+                  </label>
+
+                  <label className="block text-sm font-semibold text-stone-700">
+                    Total time (MM:SS)
+                    <input
+                      type="text"
+                      value={freeTextTotalTime}
+                      onChange={(e) => setFreeTextTotalTime(e.target.value)}
+                      className="mt-2 w-full rounded-xl border border-stone-300 px-3 py-2"
+                      placeholder="3:45"
+                    />
+                  </label>
+                </>
+              ) : (
+                <>
+                  <label className="block text-sm font-semibold text-stone-700">
+                    Search by artist
+                    <input type="search" value={artistQuery} onChange={(e) => setArtistQuery(e.target.value)} className="mt-2 w-full rounded-xl border border-stone-300 px-3 py-2" list="artists" />
+                  </label>
+                  <datalist id="artists">
+                    {artistResults.map((artist) => (
+                      <option key={artist.id} value={artist.name} />
+                    ))}
+                  </datalist>
+
+                  <label className="block text-sm font-semibold text-stone-700">
+                    Search by song
+                    <input type="search" value={songQuery} onChange={(e) => setSongQuery(e.target.value)} className="mt-2 w-full rounded-xl border border-stone-300 px-3 py-2" list="tracks" />
+                  </label>
+                  <datalist id="tracks">
+                    {trackResults.map((track) => (
+                      <option key={track.id} value={`${track.title} — ${getTrackArtists(track)}`} />
+                    ))}
+                  </datalist>
+                </>
+              )}
 
               <fieldset>
                 <legend className="mb-2 text-sm font-semibold text-stone-700">Theme</legend>
