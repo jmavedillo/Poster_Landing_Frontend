@@ -19,6 +19,14 @@ const formatSlides = [
     imageAlt: "Special Moment format preview",
   },
   {
+    title: "Minimal Reveal",
+    description: "Turn your text and photo into a minimal reveal video visual.",
+    href: "/create-4",
+    cta: "Create reveal visual",
+    image: momentPreview,
+    imageAlt: "Minimal Reveal format preview",
+  },
+  {
     title: "Map Message",
     description: "Turn a place into a meaningful visual.",
     href: "/create-3",
@@ -174,6 +182,12 @@ export default function Home() {
                 className="inline-flex w-fit rounded-full border border-stone-300 bg-white px-5 py-2 text-sm font-semibold text-stone-800 transition hover:bg-stone-100"
               >
                 Your Special Moment
+              </a>
+              <a
+                href="/create-4"
+                className="inline-flex w-fit rounded-full border border-stone-300 bg-white px-5 py-2 text-sm font-semibold text-stone-800 transition hover:bg-stone-100"
+              >
+                Your Minimal Reveal
               </a>
               <a
                 href="/create-3"
