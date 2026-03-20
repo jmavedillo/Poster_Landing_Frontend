@@ -162,7 +162,7 @@ const downloadBlobAsFile = (blob: Blob, fileName: string) => {
   URL.revokeObjectURL(downloadUrl);
 };
 
-const toJpegFile = (blob: Blob, fileName: string) => new File([blob], fileName, { type: "image/jpeg" });
+const toAssetFile = (blob: Blob, fileName: string, mimeType: string) => new File([blob], fileName, { type: mimeType });
 
 const isShareCancelled = (error: unknown) => error instanceof Error && error.name === "AbortError";
 
@@ -279,6 +279,7 @@ const uploadImageToImgbb = async (imageBlob: Blob) => {
 };
 
 export function CreatePosterClient({ templateId, pageTitle, pageDescription, requiresPhotoUpload = false, useFreeTextTrack = false }: CreatePosterClientProps) {
+  const isVideoTemplate = templateId === "minimal-reveal-v1";
   const availableThemes = requiresPhotoUpload ? createTwoThemes : createThemes;
   const defaultTheme = availableThemes[0]?.value ?? "dark";
   const [artistQuery, setArtistQuery] = useState("");
@@ -293,7 +294,7 @@ export function CreatePosterClient({ templateId, pageTitle, pageDescription, req
   const [theme, setTheme] = useState<PosterTheme>(defaultTheme);
   const [showPoster, setShowPoster] = useState(false);
   const [isExporting, setIsExporting] = useState<number | null>(null);
-  const [isPreparingPosterImage, setIsPreparingPosterImage] = useState(false);
+  const [isPreparingPosterAsset, setIsPreparingPosterAsset] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [previewHtml, setPreviewHtml] = useState<string | null>(null);
@@ -302,7 +303,7 @@ export function CreatePosterClient({ templateId, pageTitle, pageDescription, req
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [photoError, setPhotoError] = useState<string | null>(null);
   const [generatedPosterRequest, setGeneratedPosterRequest] = useState<PosterRenderRequest | null>(null);
-  const [cachedPosterImage, setCachedPosterImage] = useState<{ blob: Blob; file: File; fileName: string } | null>(null);
+  const [cachedPosterAsset, setCachedPosterAsset] = useState<{ blob: Blob; file: File; fileName: string } | null>(null);
   const prepareRenderIdRef = useRef(0);
 
   useEffect(() => {
@@ -527,7 +528,7 @@ export function CreatePosterClient({ templateId, pageTitle, pageDescription, req
 
     setIsGenerating(true);
     prepareRenderIdRef.current += 1;
-    setCachedPosterImage(null);
+    setCachedPosterAsset(null);
     setGeneratedPosterRequest(null);
     try {
       const previewRequest: PosterRenderRequest = buildPosterRenderRequest({
@@ -552,7 +553,7 @@ export function CreatePosterClient({ templateId, pageTitle, pageDescription, req
       setShowPoster(true);
       setSearchError(null);
       setGeneratedPosterRequest(previewRequest);
-      void preparePosterImageInBackground(previewRequest);
+      void preparePosterAssetInBackground(previewRequest);
     } catch (error) {
       setSearchError(getRequestErrorMessage(error, "Unable to render preview right now."));
     } finally {
@@ -560,15 +561,22 @@ export function CreatePosterClient({ templateId, pageTitle, pageDescription, req
     }
   };
 
-  const renderPosterImage = async (width: number, sourceRequest?: PosterRenderRequest) => {
+  const renderPosterAsset = async (width: number, sourceRequest?: PosterRenderRequest) => {
     const baseRequest = sourceRequest ?? generatedPosterRequest ?? posterPayload;
-    const renderRequest: PosterRenderRequest = buildPosterRenderRequest({
-      template: baseRequest.template,
-      track: baseRequest.track,
-      artwork: baseRequest.artwork,
-      theme: baseRequest.theme,
-      output: { width, format: "jpeg", quality: 0.92 },
-    });
+    const renderRequest: PosterRenderRequest = isVideoTemplate
+      ? buildPosterRenderRequest({
+          template: baseRequest.template,
+          track: baseRequest.track,
+          artwork: baseRequest.artwork,
+          theme: baseRequest.theme,
+        })
+      : buildPosterRenderRequest({
+          template: baseRequest.template,
+          track: baseRequest.track,
+          artwork: baseRequest.artwork,
+          theme: baseRequest.theme,
+          output: { width, format: "jpeg", quality: 0.92 },
+        });
     if (process.env.NODE_ENV === "development") {
       console.log("[CreatePosterClient] render template", renderRequest.template);
     }
@@ -584,51 +592,53 @@ export function CreatePosterClient({ templateId, pageTitle, pageDescription, req
     }
 
     const blob = await response.blob();
-    const fileName = `${sanitizeFileName(baseRequest.track.title)}-poster-${width}.jpg`;
-    return { blob, fileName, file: toJpegFile(blob, fileName) };
+    const extension = isVideoTemplate ? "mp4" : "jpg";
+    const mimeType = isVideoTemplate ? "video/mp4" : "image/jpeg";
+    const fileName = `${sanitizeFileName(baseRequest.track.title)}-poster-${width}.${extension}`;
+    return { blob, fileName, file: toAssetFile(blob, fileName, mimeType) };
   };
 
-  const preparePosterImageInBackground = async (sourceRequest: PosterRenderRequest) => {
+  const preparePosterAssetInBackground = async (sourceRequest: PosterRenderRequest) => {
     const currentRenderId = prepareRenderIdRef.current + 1;
     prepareRenderIdRef.current = currentRenderId;
-    setIsPreparingPosterImage(true);
-    setCachedPosterImage(null);
+    setIsPreparingPosterAsset(true);
+    setCachedPosterAsset(null);
 
     try {
-      const { blob, fileName, file } = await renderPosterImage(SHARE_DEFAULT_WIDTH, sourceRequest);
+      const { blob, fileName, file } = await renderPosterAsset(SHARE_DEFAULT_WIDTH, sourceRequest);
       if (prepareRenderIdRef.current !== currentRenderId) return;
-      setCachedPosterImage({ blob, fileName, file });
+      setCachedPosterAsset({ blob, fileName, file });
     } catch (error) {
       if (prepareRenderIdRef.current !== currentRenderId) return;
-      setSearchError(getRequestErrorMessage(error, "Unable to prepare the poster image right now."));
+      setSearchError(getRequestErrorMessage(error, `Unable to prepare the poster ${isVideoTemplate ? "video" : "image"} right now.`));
     } finally {
       if (prepareRenderIdRef.current === currentRenderId) {
-        setIsPreparingPosterImage(false);
+        setIsPreparingPosterAsset(false);
       }
     }
   };
 
-  const getCachedPosterImage = async () => {
-    if (cachedPosterImage) {
-      return cachedPosterImage;
+  const getCachedPosterAsset = async () => {
+    if (cachedPosterAsset) {
+      return cachedPosterAsset;
     }
 
     const sourceRequest = generatedPosterRequest ?? posterPayload;
-    setIsPreparingPosterImage(true);
+    setIsPreparingPosterAsset(true);
     try {
-      const rendered = await renderPosterImage(SHARE_DEFAULT_WIDTH, sourceRequest);
+      const rendered = await renderPosterAsset(SHARE_DEFAULT_WIDTH, sourceRequest);
       const cached = { blob: rendered.blob, fileName: rendered.fileName, file: rendered.file };
-      setCachedPosterImage(cached);
+      setCachedPosterAsset(cached);
       return cached;
     } finally {
-      setIsPreparingPosterImage(false);
+      setIsPreparingPosterAsset(false);
     }
   };
 
   const handleExport = async () => {
     setIsExporting(SHARE_DEFAULT_WIDTH);
     try {
-      const { blob, fileName } = await getCachedPosterImage();
+      const { blob, fileName } = await getCachedPosterAsset();
       downloadBlobAsFile(blob, fileName);
     } catch (error) {
       setSearchError(getRequestErrorMessage(error, "Poster export failed. Please try again."));
@@ -640,7 +650,7 @@ export function CreatePosterClient({ templateId, pageTitle, pageDescription, req
   const handleShare = async (includeSong: boolean) => {
     setIsExporting(SHARE_DEFAULT_WIDTH);
     try {
-      const { blob, fileName, file } = await getCachedPosterImage();
+      const { blob, fileName, file } = await getCachedPosterAsset();
       const sharePayload: ShareData = {
         files: [file],
         title: "Soundframe visual",
@@ -828,26 +838,26 @@ export function CreatePosterClient({ templateId, pageTitle, pageDescription, req
                   <button
                     type="button"
                     onClick={() => handleShare(false)}
-                    disabled={!showPoster || isExporting !== null || isPreparingPosterImage}
+                    disabled={!showPoster || isExporting !== null || isPreparingPosterAsset}
                     className="w-full rounded-full bg-stone-900 px-3 py-2 text-xs font-semibold text-white disabled:opacity-60"
                   >
-                    {isPreparingPosterImage ? "Preparing image..." : isExporting === SHARE_DEFAULT_WIDTH ? "Sharing..." : "Share image"}
+                    {isPreparingPosterAsset ? `Preparing ${isVideoTemplate ? "video" : "image"}...` : isExporting === SHARE_DEFAULT_WIDTH ? "Sharing..." : `Share ${isVideoTemplate ? "video" : "image"}`}
                   </button>
                   <button
                     type="button"
                     onClick={() => handleShare(true)}
-                    disabled={!showPoster || isExporting !== null || isPreparingPosterImage}
+                    disabled={!showPoster || isExporting !== null || isPreparingPosterAsset}
                     className="w-full rounded-full border border-stone-300 bg-white px-3 py-2 text-xs font-semibold text-stone-800 disabled:opacity-60"
                   >
-                    {isPreparingPosterImage ? "Preparing image..." : isExporting === SHARE_DEFAULT_WIDTH ? "Sharing..." : "Share image + song"}
+                    {isPreparingPosterAsset ? `Preparing ${isVideoTemplate ? "video" : "image"}...` : isExporting === SHARE_DEFAULT_WIDTH ? "Sharing..." : `Share ${isVideoTemplate ? "video" : "image"} + song`}
                   </button>
                   <button
                     type="button"
                     onClick={handleExport}
-                    disabled={!showPoster || isExporting !== null || isPreparingPosterImage}
+                    disabled={!showPoster || isExporting !== null || isPreparingPosterAsset}
                     className="w-full rounded-full border border-stone-300 bg-white px-3 py-2 text-xs font-semibold text-stone-800 disabled:opacity-60 sm:col-span-2"
                   >
-                    {isPreparingPosterImage ? "Preparing image..." : isExporting === SHARE_DEFAULT_WIDTH ? "Exporting..." : "Download image"}
+                    {isPreparingPosterAsset ? `Preparing ${isVideoTemplate ? "video" : "image"}...` : isExporting === SHARE_DEFAULT_WIDTH ? "Exporting..." : `Download ${isVideoTemplate ? "video" : "image"}`}
                   </button>
                 </div>
               </div>
