@@ -280,6 +280,7 @@ const uploadImageToImgbb = async (imageBlob: Blob) => {
 
 export function CreatePosterClient({ templateId, pageTitle, pageDescription, requiresPhotoUpload = false, useFreeTextTrack = false }: CreatePosterClientProps) {
   const isVideoTemplate = templateId === "minimal-reveal-v1";
+  const showShareWithSongAction = !isVideoTemplate;
   const availableThemes = requiresPhotoUpload ? createTwoThemes : createThemes;
   const defaultTheme = availableThemes[0]?.value ?? "dark";
   const [artistQuery, setArtistQuery] = useState("");
@@ -814,7 +815,7 @@ export function CreatePosterClient({ templateId, pageTitle, pageDescription, req
                 className="flex w-full items-center justify-center rounded-full bg-stone-900 px-6 py-3 text-sm font-semibold text-white"
                 disabled={isGenerating || isUploadingPhoto}
               >
-                {isGenerating ? "Rendering..." : "Generate visual"}
+                {isGenerating ? (isVideoTemplate ? "Preparing video..." : "Rendering...") : "Generate visual"}
               </button>
             </form>
           </div>
@@ -837,29 +838,52 @@ export function CreatePosterClient({ templateId, pageTitle, pageDescription, req
                 <div className="mt-4 grid w-full grid-cols-1 gap-3 sm:grid-cols-2">
                   <button
                     type="button"
-                    onClick={() => handleShare(false)}
+                    onClick={handleExport}
                     disabled={!showPoster || isExporting !== null || isPreparingPosterAsset}
                     className="w-full rounded-full bg-stone-900 px-3 py-2 text-xs font-semibold text-white disabled:opacity-60"
                   >
-                    {isPreparingPosterAsset ? `Preparing ${isVideoTemplate ? "video" : "image"}...` : isExporting === SHARE_DEFAULT_WIDTH ? "Sharing..." : `Share ${isVideoTemplate ? "video" : "image"}`}
+                    {isPreparingPosterAsset
+                      ? isVideoTemplate
+                        ? "Rendering reveal video..."
+                        : "Preparing image..."
+                      : isExporting === SHARE_DEFAULT_WIDTH
+                        ? "Exporting..."
+                        : `Download ${isVideoTemplate ? "video" : "image"}`}
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleShare(true)}
+                    onClick={() => handleShare(false)}
                     disabled={!showPoster || isExporting !== null || isPreparingPosterAsset}
                     className="w-full rounded-full border border-stone-300 bg-white px-3 py-2 text-xs font-semibold text-stone-800 disabled:opacity-60"
                   >
-                    {isPreparingPosterAsset ? `Preparing ${isVideoTemplate ? "video" : "image"}...` : isExporting === SHARE_DEFAULT_WIDTH ? "Sharing..." : `Share ${isVideoTemplate ? "video" : "image"} + song`}
+                    {isPreparingPosterAsset
+                      ? isVideoTemplate
+                        ? "Preparing video..."
+                        : "Preparing image..."
+                      : isExporting === SHARE_DEFAULT_WIDTH
+                        ? "Sharing..."
+                        : `Share ${isVideoTemplate ? "video" : "image"}`}
                   </button>
-                  <button
-                    type="button"
-                    onClick={handleExport}
-                    disabled={!showPoster || isExporting !== null || isPreparingPosterAsset}
-                    className="w-full rounded-full border border-stone-300 bg-white px-3 py-2 text-xs font-semibold text-stone-800 disabled:opacity-60 sm:col-span-2"
-                  >
-                    {isPreparingPosterAsset ? `Preparing ${isVideoTemplate ? "video" : "image"}...` : isExporting === SHARE_DEFAULT_WIDTH ? "Exporting..." : `Download ${isVideoTemplate ? "video" : "image"}`}
-                  </button>
+                  {showShareWithSongAction ? (
+                    <button
+                      type="button"
+                      onClick={() => handleShare(true)}
+                      disabled={!showPoster || isExporting !== null || isPreparingPosterAsset}
+                      className="w-full rounded-full border border-stone-300 bg-white px-3 py-2 text-xs font-semibold text-stone-800 disabled:opacity-60 sm:col-span-2"
+                    >
+                      {isPreparingPosterAsset ? "Preparing image..." : isExporting === SHARE_DEFAULT_WIDTH ? "Sharing..." : "Share image + song"}
+                    </button>
+                  ) : null}
                 </div>
+                {isVideoTemplate && showPoster ? (
+                  <p className="mt-3 text-xs text-stone-500">
+                    {isGenerating
+                      ? "Preparing video preview..."
+                      : isPreparingPosterAsset
+                        ? "Rendering reveal video in the background so download and share are faster."
+                        : "Video is ready to download or share."}
+                  </p>
+                ) : null}
               </div>
 
               <aside className="w-full rounded-2xl border border-stone-200 bg-stone-50 p-4 text-sm text-stone-700 xl:max-w-[320px]">
