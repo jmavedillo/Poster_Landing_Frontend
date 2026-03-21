@@ -21,7 +21,7 @@ const formatSlides = [
   },
   {
     title: "Video Reveal",
-    description: "Turn your text and photo into a minimal reveal video visual.",
+    description: "Turn your memory into a video reveal",
     href: "/create-4",
     cta: "Create reveal visual",
     image: videoPreview,
