@@ -5,6 +5,7 @@ import logo from "./azteuno.png";
 import songPreview from "./song.jpg";
 import momentPreview from "./moment.jpg";
 import mapPreview from "./examples/nuevayol-poster-1000.jpg";
+import videoPreview from "./Video.jpg";
 
 const inter = Inter({ subsets: ["latin"] });
 const interSemibold = Inter({ subsets: ["latin"], weight: "600" });
@@ -19,12 +20,12 @@ const formatSlides = [
     imageAlt: "Special Moment format preview",
   },
   {
-    title: "Minimal Reveal",
+    title: "Video Reveal",
     description: "Turn your text and photo into a minimal reveal video visual.",
     href: "/create-4",
     cta: "Create reveal visual",
-    image: momentPreview,
-    imageAlt: "Minimal Reveal format preview",
+    image: videoPreview,
+    imageAlt: "Video Reveal format preview",
   },
   {
     title: "Map Message",

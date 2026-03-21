@@ -64,6 +64,9 @@ const API_UNREACHABLE_MESSAGE =
   `Cannot reach the poster API at ${API_BASE_URL}. Set NEXT_PUBLIC_API_BASE_URL to your running backend URL.`;
 const SHARE_DEFAULT_WIDTH = 1000;
 
+const FREE_TEXT_TITLE_MAX_LENGTH = 28;
+const FREE_TEXT_ARTIST_MAX_LENGTH = 24;
+
 const serializeBody = (body: unknown) => {
   if (typeof body === "string") return body;
   if (body == null) return "";
@@ -716,6 +719,7 @@ export function CreatePosterClient({ templateId, pageTitle, pageDescription, req
                     Song title
                     <input
                       type="text"
+                      maxLength={FREE_TEXT_TITLE_MAX_LENGTH}
                       value={freeTextTitle}
                       onChange={(e) => setFreeTextTitle(e.target.value)}
                       className="mt-2 w-full rounded-xl border border-stone-300 px-3 py-2"
@@ -727,6 +731,7 @@ export function CreatePosterClient({ templateId, pageTitle, pageDescription, req
                     Artist name
                     <input
                       type="text"
+                      maxLength={FREE_TEXT_ARTIST_MAX_LENGTH}
                       value={freeTextArtists}
                       onChange={(e) => setFreeTextArtists(e.target.value)}
                       className="mt-2 w-full rounded-xl border border-stone-300 px-3 py-2"
