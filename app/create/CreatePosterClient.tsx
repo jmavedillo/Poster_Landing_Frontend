@@ -33,6 +33,7 @@ type CreatePosterClientProps = {
   pageTitle: string;
   pageDescription: string;
   requiresPhotoUpload?: boolean;
+  useFreeTextTrack?: boolean;
 };
 
 
@@ -62,6 +63,9 @@ const createTwoThemes: Array<{ label: string; value: PosterTheme }> = [
 const API_UNREACHABLE_MESSAGE =
   `Cannot reach the poster API at ${API_BASE_URL}. Set NEXT_PUBLIC_API_BASE_URL to your running backend URL.`;
 const SHARE_DEFAULT_WIDTH = 1000;
+
+const FREE_TEXT_TITLE_MAX_LENGTH = 28;
+const FREE_TEXT_ARTIST_MAX_LENGTH = 24;
 
 const serializeBody = (body: unknown) => {
   if (typeof body === "string") return body;
@@ -161,7 +165,7 @@ const downloadBlobAsFile = (blob: Blob, fileName: string) => {
   URL.revokeObjectURL(downloadUrl);
 };
 
-const toJpegFile = (blob: Blob, fileName: string) => new File([blob], fileName, { type: "image/jpeg" });
+const toAssetFile = (blob: Blob, fileName: string, mimeType: string) => new File([blob], fileName, { type: mimeType });
 
 const isShareCancelled = (error: unknown) => error instanceof Error && error.name === "AbortError";
 
@@ -277,7 +281,9 @@ const uploadImageToImgbb = async (imageBlob: Blob) => {
   return payload.data.url;
 };
 
-export function CreatePosterClient({ templateId, pageTitle, pageDescription, requiresPhotoUpload = false }: CreatePosterClientProps) {
+export function CreatePosterClient({ templateId, pageTitle, pageDescription, requiresPhotoUpload = false, useFreeTextTrack = false }: CreatePosterClientProps) {
+  const isVideoTemplate = templateId === "minimal-reveal-v1";
+  const showShareWithSongAction = !isVideoTemplate;
   const availableThemes = requiresPhotoUpload ? createTwoThemes : createThemes;
   const defaultTheme = availableThemes[0]?.value ?? "dark";
   const [artistQuery, setArtistQuery] = useState("");
@@ -286,10 +292,13 @@ export function CreatePosterClient({ templateId, pageTitle, pageDescription, req
   const [trackResults, setTrackResults] = useState<Track[]>([]);
   const [selectedArtist, setSelectedArtist] = useState<Artist | null>(null);
   const [selectedTrack, setSelectedTrack] = useState<Track | null>(null);
+  const [freeTextTitle, setFreeTextTitle] = useState("");
+  const [freeTextArtists, setFreeTextArtists] = useState("");
+  const [freeTextTotalTime, setFreeTextTotalTime] = useState(defaults.totalTime);
   const [theme, setTheme] = useState<PosterTheme>(defaultTheme);
   const [showPoster, setShowPoster] = useState(false);
   const [isExporting, setIsExporting] = useState<number | null>(null);
-  const [isPreparingPosterImage, setIsPreparingPosterImage] = useState(false);
+  const [isPreparingPosterAsset, setIsPreparingPosterAsset] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [previewHtml, setPreviewHtml] = useState<string | null>(null);
@@ -298,38 +307,59 @@ export function CreatePosterClient({ templateId, pageTitle, pageDescription, req
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [photoError, setPhotoError] = useState<string | null>(null);
   const [generatedPosterRequest, setGeneratedPosterRequest] = useState<PosterRenderRequest | null>(null);
-  const [cachedPosterImage, setCachedPosterImage] = useState<{ blob: Blob; file: File; fileName: string } | null>(null);
+  const [cachedPosterAsset, setCachedPosterAsset] = useState<{ blob: Blob; file: File; fileName: string } | null>(null);
   const prepareRenderIdRef = useRef(0);
 
   useEffect(() => {
     setTheme(defaultTheme);
   }, [defaultTheme]);
 
+  const resolvedTrack = useMemo(() => {
+    if (useFreeTextTrack) {
+      const title = freeTextTitle.trim() || defaults.title;
+      const artists = freeTextArtists.trim() || defaults.artists;
+      const safeTotalTime = parseTime(freeTextTotalTime.trim()) === null ? defaults.totalTime : freeTextTotalTime.trim();
+      return {
+        title,
+        artists,
+        totalTime: safeTotalTime,
+        currentTime: getElapsedTime(safeTotalTime),
+        uri: "",
+        spotifyUrl: "",
+      };
+    }
+
+    if (selectedTrack) {
+      const totalTime = formatTime(selectedTrack.durationSeconds);
+      return {
+        title: selectedTrack.title,
+        artists: getTrackArtists(selectedTrack),
+        totalTime,
+        currentTime: getElapsedTime(totalTime),
+        uri: selectedTrack.uri ?? "",
+        spotifyUrl: selectedTrack.spotifyUrl ?? "",
+      };
+    }
+
+    return {
+      title: defaults.title,
+      artists: defaults.artists,
+      totalTime: defaults.totalTime,
+      currentTime: getElapsedTime(defaults.totalTime),
+    };
+  }, [useFreeTextTrack, freeTextTitle, freeTextArtists, freeTextTotalTime, selectedTrack]);
+
   const posterPayload: PosterRenderRequest = useMemo(
     () =>
       buildPosterRenderRequest({
         template: templateId,
-        track: selectedTrack
-          ? {
-              title: selectedTrack.title,
-              artists: getTrackArtists(selectedTrack),
-              totalTime: formatTime(selectedTrack.durationSeconds),
-              currentTime: getElapsedTime(formatTime(selectedTrack.durationSeconds)),
-              uri: selectedTrack.uri ?? "",
-              spotifyUrl: selectedTrack.spotifyUrl ?? "",
-            }
-          : {
-              title: defaults.title,
-              artists: defaults.artists,
-              totalTime: defaults.totalTime,
-              currentTime: getElapsedTime(defaults.totalTime),
-            },
+        track: resolvedTrack,
         artwork: {
           coverUrl: requiresPhotoUpload ? resolveCoverUrl(uploadedPhotoUrl) : resolveCoverUrl(selectedTrack?.coverUrl),
         },
         theme,
       }),
-    [selectedTrack, templateId, theme, requiresPhotoUpload, uploadedPhotoUrl],
+    [resolvedTrack, selectedTrack?.coverUrl, templateId, theme, requiresPhotoUpload, uploadedPhotoUrl],
   );
 
   useEffect(() => {
@@ -342,6 +372,8 @@ export function CreatePosterClient({ templateId, pageTitle, pageDescription, req
   }, [templateId]);
 
   useEffect(() => {
+    if (useFreeTextTrack) return;
+
     const normalizedArtistTerm = normalizeText(artistQuery);
     if (normalizedArtistTerm.length < MIN_QUERY_LENGTH) {
       setArtistResults([]);
@@ -374,9 +406,11 @@ export function CreatePosterClient({ templateId, pageTitle, pageDescription, req
       isCancelled = true;
       window.clearTimeout(timeoutId);
     };
-  }, [artistQuery]);
+  }, [artistQuery, useFreeTextTrack]);
 
   useEffect(() => {
+    if (useFreeTextTrack) return;
+
     const artistChanged = selectedArtist && normalizeText(selectedArtist.name) !== normalizeText(artistQuery);
     if (artistChanged) {
       setSelectedTrack(null);
@@ -426,7 +460,7 @@ export function CreatePosterClient({ templateId, pageTitle, pageDescription, req
       isCancelled = true;
       window.clearTimeout(timeoutId);
     };
-  }, [songQuery, artistQuery, selectedArtist]);
+  }, [songQuery, artistQuery, selectedArtist, useFreeTextTrack]);
 
 
   const handlePhotoUpload = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -476,7 +510,17 @@ export function CreatePosterClient({ templateId, pageTitle, pageDescription, req
     event.preventDefault();
     if (isGenerating) return;
 
-    if (!selectedTrack) {
+    if (useFreeTextTrack) {
+      if (!freeTextTitle.trim() || !freeTextArtists.trim()) {
+        setSearchError("Please add a title and artist to generate this visual");
+        return;
+      }
+
+      if (parseTime(freeTextTotalTime.trim()) === null) {
+        setSearchError("Please use MM:SS format for total time (example 3:45)");
+        return;
+      }
+    } else if (!selectedTrack) {
       setSearchError("Please select a song to generate this visual");
       return;
     }
@@ -488,7 +532,7 @@ export function CreatePosterClient({ templateId, pageTitle, pageDescription, req
 
     setIsGenerating(true);
     prepareRenderIdRef.current += 1;
-    setCachedPosterImage(null);
+    setCachedPosterAsset(null);
     setGeneratedPosterRequest(null);
     try {
       const previewRequest: PosterRenderRequest = buildPosterRenderRequest({
@@ -513,7 +557,7 @@ export function CreatePosterClient({ templateId, pageTitle, pageDescription, req
       setShowPoster(true);
       setSearchError(null);
       setGeneratedPosterRequest(previewRequest);
-      void preparePosterImageInBackground(previewRequest);
+      void preparePosterAssetInBackground(previewRequest);
     } catch (error) {
       setSearchError(getRequestErrorMessage(error, "Unable to render preview right now."));
     } finally {
@@ -521,15 +565,22 @@ export function CreatePosterClient({ templateId, pageTitle, pageDescription, req
     }
   };
 
-  const renderPosterImage = async (width: number, sourceRequest?: PosterRenderRequest) => {
+  const renderPosterAsset = async (width: number, sourceRequest?: PosterRenderRequest) => {
     const baseRequest = sourceRequest ?? generatedPosterRequest ?? posterPayload;
-    const renderRequest: PosterRenderRequest = buildPosterRenderRequest({
-      template: baseRequest.template,
-      track: baseRequest.track,
-      artwork: baseRequest.artwork,
-      theme: baseRequest.theme,
-      output: { width, format: "jpeg", quality: 0.92 },
-    });
+    const renderRequest: PosterRenderRequest = isVideoTemplate
+      ? buildPosterRenderRequest({
+          template: baseRequest.template,
+          track: baseRequest.track,
+          artwork: baseRequest.artwork,
+          theme: baseRequest.theme,
+        })
+      : buildPosterRenderRequest({
+          template: baseRequest.template,
+          track: baseRequest.track,
+          artwork: baseRequest.artwork,
+          theme: baseRequest.theme,
+          output: { width, format: "jpeg", quality: 0.92 },
+        });
     if (process.env.NODE_ENV === "development") {
       console.log("[CreatePosterClient] render template", renderRequest.template);
     }
@@ -545,51 +596,53 @@ export function CreatePosterClient({ templateId, pageTitle, pageDescription, req
     }
 
     const blob = await response.blob();
-    const fileName = `${sanitizeFileName(baseRequest.track.title)}-poster-${width}.jpg`;
-    return { blob, fileName, file: toJpegFile(blob, fileName) };
+    const extension = isVideoTemplate ? "mp4" : "jpg";
+    const mimeType = isVideoTemplate ? "video/mp4" : "image/jpeg";
+    const fileName = `${sanitizeFileName(baseRequest.track.title)}-poster-${width}.${extension}`;
+    return { blob, fileName, file: toAssetFile(blob, fileName, mimeType) };
   };
 
-  const preparePosterImageInBackground = async (sourceRequest: PosterRenderRequest) => {
+  const preparePosterAssetInBackground = async (sourceRequest: PosterRenderRequest) => {
     const currentRenderId = prepareRenderIdRef.current + 1;
     prepareRenderIdRef.current = currentRenderId;
-    setIsPreparingPosterImage(true);
-    setCachedPosterImage(null);
+    setIsPreparingPosterAsset(true);
+    setCachedPosterAsset(null);
 
     try {
-      const { blob, fileName, file } = await renderPosterImage(SHARE_DEFAULT_WIDTH, sourceRequest);
+      const { blob, fileName, file } = await renderPosterAsset(SHARE_DEFAULT_WIDTH, sourceRequest);
       if (prepareRenderIdRef.current !== currentRenderId) return;
-      setCachedPosterImage({ blob, fileName, file });
+      setCachedPosterAsset({ blob, fileName, file });
     } catch (error) {
       if (prepareRenderIdRef.current !== currentRenderId) return;
-      setSearchError(getRequestErrorMessage(error, "Unable to prepare the poster image right now."));
+      setSearchError(getRequestErrorMessage(error, `Unable to prepare the poster ${isVideoTemplate ? "video" : "image"} right now.`));
     } finally {
       if (prepareRenderIdRef.current === currentRenderId) {
-        setIsPreparingPosterImage(false);
+        setIsPreparingPosterAsset(false);
       }
     }
   };
 
-  const getCachedPosterImage = async () => {
-    if (cachedPosterImage) {
-      return cachedPosterImage;
+  const getCachedPosterAsset = async () => {
+    if (cachedPosterAsset) {
+      return cachedPosterAsset;
     }
 
     const sourceRequest = generatedPosterRequest ?? posterPayload;
-    setIsPreparingPosterImage(true);
+    setIsPreparingPosterAsset(true);
     try {
-      const rendered = await renderPosterImage(SHARE_DEFAULT_WIDTH, sourceRequest);
+      const rendered = await renderPosterAsset(SHARE_DEFAULT_WIDTH, sourceRequest);
       const cached = { blob: rendered.blob, fileName: rendered.fileName, file: rendered.file };
-      setCachedPosterImage(cached);
+      setCachedPosterAsset(cached);
       return cached;
     } finally {
-      setIsPreparingPosterImage(false);
+      setIsPreparingPosterAsset(false);
     }
   };
 
   const handleExport = async () => {
     setIsExporting(SHARE_DEFAULT_WIDTH);
     try {
-      const { blob, fileName } = await getCachedPosterImage();
+      const { blob, fileName } = await getCachedPosterAsset();
       downloadBlobAsFile(blob, fileName);
     } catch (error) {
       setSearchError(getRequestErrorMessage(error, "Poster export failed. Please try again."));
@@ -601,7 +654,7 @@ export function CreatePosterClient({ templateId, pageTitle, pageDescription, req
   const handleShare = async (includeSong: boolean) => {
     setIsExporting(SHARE_DEFAULT_WIDTH);
     try {
-      const { blob, fileName, file } = await getCachedPosterImage();
+      const { blob, fileName, file } = await getCachedPosterAsset();
       const sharePayload: ShareData = {
         files: [file],
         title: "Soundframe visual",
@@ -660,25 +713,66 @@ export function CreatePosterClient({ templateId, pageTitle, pageDescription, req
             <p className="mt-2 text-sm text-stone-600">{pageDescription}</p>
 
             <form className="mt-6 space-y-4" onSubmit={handleGeneratePoster}>
-              <label className="block text-sm font-semibold text-stone-700">
-                Search by artist
-                <input type="search" value={artistQuery} onChange={(e) => setArtistQuery(e.target.value)} className="mt-2 w-full rounded-xl border border-stone-300 px-3 py-2" list="artists" />
-              </label>
-              <datalist id="artists">
-                {artistResults.map((artist) => (
-                  <option key={artist.id} value={artist.name} />
-                ))}
-              </datalist>
+              {useFreeTextTrack ? (
+                <>
+                  <label className="block text-sm font-semibold text-stone-700">
+                    Song title
+                    <input
+                      type="text"
+                      maxLength={FREE_TEXT_TITLE_MAX_LENGTH}
+                      value={freeTextTitle}
+                      onChange={(e) => setFreeTextTitle(e.target.value)}
+                      className="mt-2 w-full rounded-xl border border-stone-300 px-3 py-2"
+                      placeholder="Type the song title"
+                    />
+                  </label>
 
-              <label className="block text-sm font-semibold text-stone-700">
-                Search by song
-                <input type="search" value={songQuery} onChange={(e) => setSongQuery(e.target.value)} className="mt-2 w-full rounded-xl border border-stone-300 px-3 py-2" list="tracks" />
-              </label>
-              <datalist id="tracks">
-                {trackResults.map((track) => (
-                  <option key={track.id} value={`${track.title} — ${getTrackArtists(track)}`} />
-                ))}
-              </datalist>
+                  <label className="block text-sm font-semibold text-stone-700">
+                    Artist name
+                    <input
+                      type="text"
+                      maxLength={FREE_TEXT_ARTIST_MAX_LENGTH}
+                      value={freeTextArtists}
+                      onChange={(e) => setFreeTextArtists(e.target.value)}
+                      className="mt-2 w-full rounded-xl border border-stone-300 px-3 py-2"
+                      placeholder="Type artist name"
+                    />
+                  </label>
+
+                  <label className="block text-sm font-semibold text-stone-700">
+                    Total time (MM:SS)
+                    <input
+                      type="text"
+                      value={freeTextTotalTime}
+                      onChange={(e) => setFreeTextTotalTime(e.target.value)}
+                      className="mt-2 w-full rounded-xl border border-stone-300 px-3 py-2"
+                      placeholder="3:45"
+                    />
+                  </label>
+                </>
+              ) : (
+                <>
+                  <label className="block text-sm font-semibold text-stone-700">
+                    Search by artist
+                    <input type="search" value={artistQuery} onChange={(e) => setArtistQuery(e.target.value)} className="mt-2 w-full rounded-xl border border-stone-300 px-3 py-2" list="artists" />
+                  </label>
+                  <datalist id="artists">
+                    {artistResults.map((artist) => (
+                      <option key={artist.id} value={artist.name} />
+                    ))}
+                  </datalist>
+
+                  <label className="block text-sm font-semibold text-stone-700">
+                    Search by song
+                    <input type="search" value={songQuery} onChange={(e) => setSongQuery(e.target.value)} className="mt-2 w-full rounded-xl border border-stone-300 px-3 py-2" list="tracks" />
+                  </label>
+                  <datalist id="tracks">
+                    {trackResults.map((track) => (
+                      <option key={track.id} value={`${track.title} — ${getTrackArtists(track)}`} />
+                    ))}
+                  </datalist>
+                </>
+              )}
 
               <fieldset>
                 <legend className="mb-2 text-sm font-semibold text-stone-700">Theme</legend>
@@ -726,7 +820,7 @@ export function CreatePosterClient({ templateId, pageTitle, pageDescription, req
                 className="flex w-full items-center justify-center rounded-full bg-stone-900 px-6 py-3 text-sm font-semibold text-white"
                 disabled={isGenerating || isUploadingPhoto}
               >
-                {isGenerating ? "Rendering..." : "Generate visual"}
+                {isGenerating ? (isVideoTemplate ? "Preparing video..." : "Rendering...") : "Generate visual"}
               </button>
             </form>
           </div>
@@ -749,29 +843,52 @@ export function CreatePosterClient({ templateId, pageTitle, pageDescription, req
                 <div className="mt-4 grid w-full grid-cols-1 gap-3 sm:grid-cols-2">
                   <button
                     type="button"
-                    onClick={() => handleShare(false)}
-                    disabled={!showPoster || isExporting !== null || isPreparingPosterImage}
+                    onClick={handleExport}
+                    disabled={!showPoster || isExporting !== null || isPreparingPosterAsset}
                     className="w-full rounded-full bg-stone-900 px-3 py-2 text-xs font-semibold text-white disabled:opacity-60"
                   >
-                    {isPreparingPosterImage ? "Preparing image..." : isExporting === SHARE_DEFAULT_WIDTH ? "Sharing..." : "Share image"}
+                    {isPreparingPosterAsset
+                      ? isVideoTemplate
+                        ? "Rendering reveal video..."
+                        : "Preparing image..."
+                      : isExporting === SHARE_DEFAULT_WIDTH
+                        ? "Exporting..."
+                        : `Download ${isVideoTemplate ? "video" : "image"}`}
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleShare(true)}
-                    disabled={!showPoster || isExporting !== null || isPreparingPosterImage}
+                    onClick={() => handleShare(false)}
+                    disabled={!showPoster || isExporting !== null || isPreparingPosterAsset}
                     className="w-full rounded-full border border-stone-300 bg-white px-3 py-2 text-xs font-semibold text-stone-800 disabled:opacity-60"
                   >
-                    {isPreparingPosterImage ? "Preparing image..." : isExporting === SHARE_DEFAULT_WIDTH ? "Sharing..." : "Share image + song"}
+                    {isPreparingPosterAsset
+                      ? isVideoTemplate
+                        ? "Preparing video..."
+                        : "Preparing image..."
+                      : isExporting === SHARE_DEFAULT_WIDTH
+                        ? "Sharing..."
+                        : `Share ${isVideoTemplate ? "video" : "image"}`}
                   </button>
-                  <button
-                    type="button"
-                    onClick={handleExport}
-                    disabled={!showPoster || isExporting !== null || isPreparingPosterImage}
-                    className="w-full rounded-full border border-stone-300 bg-white px-3 py-2 text-xs font-semibold text-stone-800 disabled:opacity-60 sm:col-span-2"
-                  >
-                    {isPreparingPosterImage ? "Preparing image..." : isExporting === SHARE_DEFAULT_WIDTH ? "Exporting..." : "Download image"}
-                  </button>
+                  {showShareWithSongAction ? (
+                    <button
+                      type="button"
+                      onClick={() => handleShare(true)}
+                      disabled={!showPoster || isExporting !== null || isPreparingPosterAsset}
+                      className="w-full rounded-full border border-stone-300 bg-white px-3 py-2 text-xs font-semibold text-stone-800 disabled:opacity-60 sm:col-span-2"
+                    >
+                      {isPreparingPosterAsset ? "Preparing image..." : isExporting === SHARE_DEFAULT_WIDTH ? "Sharing..." : "Share image + song"}
+                    </button>
+                  ) : null}
                 </div>
+                {isVideoTemplate && showPoster ? (
+                  <p className="mt-3 text-xs text-stone-500">
+                    {isGenerating
+                      ? "Preparing video preview..."
+                      : isPreparingPosterAsset
+                        ? "Rendering reveal video in the background so download and share are faster."
+                        : "Video is ready to download or share."}
+                  </p>
+                ) : null}
               </div>
 
               <aside className="w-full rounded-2xl border border-stone-200 bg-stone-50 p-4 text-sm text-stone-700 xl:max-w-[320px]">

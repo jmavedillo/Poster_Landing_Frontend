@@ -5,6 +5,7 @@ export type CreatePosterPageConfig = {
   pageTitle: string;
   pageDescription: string;
   requiresPhotoUpload?: boolean;
+  useFreeTextTrack?: boolean;
 };
 
 export const createPosterConfigs = {
@@ -19,5 +20,12 @@ export const createPosterConfigs = {
     pageTitle: "Create your visual",
     pageDescription: "Use your photo and song details to craft a clean, emotional visual.",
     requiresPhotoUpload: true,
+  },
+  create4: {
+    templateId: "minimal-reveal-v1",
+    pageTitle: "Create your reveal visual",
+    pageDescription: "Use free text and your photo to generate a minimal reveal visual.",
+    requiresPhotoUpload: true,
+    useFreeTextTrack: true,
   },
 } satisfies Record<string, CreatePosterPageConfig>;
